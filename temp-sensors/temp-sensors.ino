@@ -32,6 +32,10 @@ float *temperatures = NULL;
 DeviceAddress *tempDevAddress; // DeviceAddress defined as uint8_t[8]
 char **tempDevHexAddress;
 
+char *tempDescription[][2] = {
+    {"288aef140500008d", "test1"},
+    {"288aef14050000ad", "test2"}};
+
 //
 // SETUP
 //
@@ -125,6 +129,19 @@ void ReadTemperatures()
     temperatures[i] = temp;
   }
   lastTemperatureRead = millis();
+}
+
+const char *getTempDescription(const char *addr)
+{
+  auto k = sizeof(tempDescription) / (2 * sizeof(char *));
+  for (int i = 0; i < k; ++i)
+  {
+    if (strcmp(tempDescription[i][0], addr) == 0)
+    {
+      return tempDescription[i][1];
+    }
+  }
+  return "not defined";
 }
 
 //
@@ -234,22 +251,42 @@ void loop()
           client.println(F("<div class=\"table-container\">"));
           client.println(F("<div class=\"table table-striped\">"));
           client.println(F("<table class=\"table\">"));
-          client.println(F("<thead><tr><th scope=\"col\"><b>Temp Sensor</b></th><th scope=\"col\"><b>Value (C)</b></th><th scope=\"col\"><b>Action</b></th></tr></thead>"));
+          client.println(F("<thead><tr>"));
+          client.print(F("<th scope=\"col\"><b>Address</b></th>"));
+          client.print(F("<th scope=\"col\"><b>Description</b></th>"));
+          client.print(F("<th scope=\"col\"><b>Value (C)</b></th>"));
+          client.print(F("<th scope=\"col\"><b>Action</b></th>"));          
+          client.print(F("</tr></thead>"));
           client.println(F("<tbody>"));
           char tmp[20];
           for (int i = 0; i < temperatureDeviceCount; ++i)
           {
-            client.print(F("<tr><td><span class='tempdev'>"));
+            client.print(F("<tr>"));
+
+            // address
+            client.print(F("<td><span class='tempdev'>"));
             client.print(tempDevHexAddress[i]);
-            client.print(F("</span></td><td><span id='t"));
+            client.print(F("</span></td>"));
+
+            // description
+            client.print(F("<td>"));
+            client.print(getTempDescription(tempDevHexAddress[i]));
+            client.print(F("</td>"));
+
+            // temperature
+            client.print(F("<td><span id='t"));
             client.print(tempDevHexAddress[i]);
             client.print(F("'>"));
             dtostrf(temperatures[i], 3, 6, tmp);
             client.print(tmp);
             client.print(F("</span>"));
+
+            // action
             client.print(F("</td><td><button class=\"btn btn-primary\" onclick='reloadTemp(\""));
             client.print(tempDevHexAddress[i]);
-            client.print(F("\");'>reload</button></td></tr>"));
+            client.print(F("\");'>reload</button></td>"));            
+
+            client.print(F("</tr>"));
           }
           client.println(F("</tbody>"));
           client.println(F("</table>"));
