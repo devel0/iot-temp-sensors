@@ -38,6 +38,7 @@ void setup()
 {
 #ifdef SERIAL_DEBUG
   Serial.begin(115200);
+  DEBUG_PRINTLN("STARTUP");
 #endif
 
   SetupTemperatureDevices();
@@ -228,9 +229,9 @@ void loop()
           char tmp[20];
           for (int i = 0; i < temperatureDeviceCount; ++i)
           {
-            client.print(F("<tr><td>"));
+            client.print(F("<tr><td><span class='tempdev'>"));
             client.print(tempDevHexAddress[i]);
-            client.print(F("</td><td><span id='t"));
+            client.print(F("</span></td><td><span id='t"));
             client.print(tempDevHexAddress[i]);
             client.print(F("'>"));
             dtostrf(temperatures[i], 3, 6, tmp);
@@ -271,15 +272,7 @@ void loop()
         //
         // JAVASCRIPTS
         //
-        client.println(F("<script>"));
-
-        client.println(F("function httpGet(theUrl)"));
-        client.println(F("{"));
-        client.println(F("    var xmlHttp = new XMLHttpRequest();"));
-        client.println(F("    xmlHttp.open( \"GET\", theUrl, false );"));
-        client.println(F("    xmlHttp.send( null );"));
-        client.println(F("    return xmlHttp.responseText;"));
-        client.println(F("}"));
+        client.println(F("<script>"));        
 
         client.println(F("function reloadTemp(addr)"));
         client.println(F("{"));
@@ -291,7 +284,9 @@ void loop()
         client.println(F("function autoreload()"));
         client.println(F("{"));
         client.println(F("    if (!reload_enabled) return;"));
-        client.println(F("    $('.tempdev').each(function (idx) { reloadTemp(this.id); });"));
+        client.println(F("    $('.tempdev').each(function (idx) {"));
+        client.println(F("      let v=this.innerText; console.log('addr=[' + v + ']'); reloadTemp(v);"));
+        client.println(F("    });"));
         client.println(F("}"));
 
         client.println(F("</script>"));
@@ -307,8 +302,8 @@ void loop()
       client.stop();
     }
   }
-  //else if (TimeDiff(lastTemperatureRead, millis()) > TEMPERATURE_INTERVAL_MS)
-  //{
-//    ReadTemperatures();
-//  }
+  else if (TimeDiff(lastTemperatureRead, millis()) > TEMPERATURE_INTERVAL_MS)
+  {
+    ReadTemperatures();
+  }
 }
