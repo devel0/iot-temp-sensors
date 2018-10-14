@@ -1,6 +1,6 @@
 #define ARDUINO 18070
 
-#define SERIAL_DEBUG
+//#define SERIAL_DEBUG
 #define SERIAL_SPEED 57600
 #define MACADDRESS 0x30, 0xcf, 0x8d, 0x9f, 0x5b, 0x89
 #define MYIPADDR 10, 10, 2, 10
@@ -44,7 +44,9 @@ void setup()
 
   SetupTemperatureDevices();
 
+#if DEBUG_PRINT
   FREERAM_PRINT;
+#endif
 
   uint8_t mac[6] = {MACADDRESS};
   uint8_t myIP[4] = {MYIPADDR};
@@ -53,10 +55,10 @@ void setup()
   uint8_t myGW[4] = {MYGW};
 
   // dhcp
-  Ethernet.begin(mac);
+  //Ethernet.begin(mac);
 
   // static
-  //Ethernet.begin(mac, myIP, myDNS, myGW, myMASK);
+  Ethernet.begin(mac, myIP, myDNS, myGW, myMASK);
 
 #ifdef SERIAL_DEBUG
   DEBUG_PRINT("my ip : ");
@@ -66,7 +68,9 @@ void setup()
 
   server.begin();
 
+#if DEBUG_PRINT
   FREERAM_PRINT;
+#endif
 }
 
 //
@@ -158,7 +162,9 @@ void loop()
       DEBUG_PRINTLN(header.c_str());
       DEBUG_PRINTLN("]");
 
+#if DEBUG_PRINT
       FREERAM_PRINT;
+#endif
 
       client.println(F("(HTTP/1.1 200 OK"));
       client.println(F("Content-type:text/html"));
@@ -208,9 +214,12 @@ void loop()
       //--------------------------
       if (header.indexOf("GET /") >= 0)
       {
+#if DEBUG_PRINT
         FREERAM_PRINT;
+#endif
 
         client.println(F("<html>"));
+        client.println(F("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head>"));
         client.println(F("<link href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css\" rel=\"stylesheet\" integrity=\"sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO\" crossorigin=\"anonymous\">"));
         client.println(F("<body>"));
 
@@ -224,7 +233,7 @@ void loop()
           client.println(F("<div class=\"col\">"));
           client.println(F("<div class=\"table-container\">"));
           client.println(F("<div class=\"table table-striped\">"));
-          client.println(F("<table>"));
+          client.println(F("<table class=\"table\">"));
           client.println(F("<thead><tr><th scope=\"col\"><b>Temp Sensor</b></th><th scope=\"col\"><b>Value (C)</b></th><th scope=\"col\"><b>Action</b></th></tr></thead>"));
           client.println(F("<tbody>"));
           char tmp[20];
@@ -273,7 +282,7 @@ void loop()
         //
         // JAVASCRIPTS
         //
-        client.println(F("<script>"));        
+        client.println(F("<script>"));
 
         client.println(F("function reloadTemp(addr)"));
         client.println(F("{"));
@@ -297,7 +306,9 @@ void loop()
 
         client.println(F("</body></html>"));
 
+#if DEBUG_PRINT
         FREERAM_PRINT;
+#endif
       }
 
       client.stop();
