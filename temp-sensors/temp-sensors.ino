@@ -2,6 +2,10 @@
 
 #define SERIAL_DEBUG
 #define MACADDRESS 0x30, 0xcf, 0x8d, 0x9f, 0x5b, 0x89
+#define MYIPADDR 10, 10, 2, 10
+#define MYIPMASK 255, 255, 255, 0
+#define MYDNS 10, 10, 0, 6
+#define MYGW 10, 10, 0, 1
 #define LISTENPORT 80
 
 #include <Arduino.h>
@@ -15,7 +19,7 @@
 
 EthernetServer server = EthernetServer(LISTENPORT);
 
-#define TEMPERATURE_INTERVAL_MS 1000
+#define TEMPERATURE_INTERVAL_MS 10000
 #define TEMPERATURE_ADDRESS_BYTES 8
 #define ONE_WIRE_BUS D3
 
@@ -38,10 +42,19 @@ void setup()
 
   SetupTemperatureDevices();
 
+  FREERAM_PRINT;
+
   uint8_t mac[6] = {MACADDRESS};
+  uint8_t myIP[4] = {MYIPADDR};
+  uint8_t myMASK[4] = {MYIPMASK};
+  uint8_t myDNS[4] = {MYDNS};
+  uint8_t myGW[4] = {MYGW};
 
   // dhcp
   Ethernet.begin(mac);
+
+  // static
+  //Ethernet.begin(mac, myIP, myDNS, myGW, myMASK);
 
 #ifdef SERIAL_DEBUG
   DEBUG_PRINT("my ip : ");
@@ -97,7 +110,7 @@ unsigned long lastTemperatureRead;
 //
 void ReadTemperatures()
 {
-  //DEBUG_PRINTLN("reading temperatures");
+  DEBUG_PRINTLN("reading temperatures");
   DS18B20.requestTemperatures();
   for (int i = 0; i < temperatureDeviceCount; ++i)
   {
@@ -137,13 +150,13 @@ void loop()
           break;
         }
         header.concat(c);
-      }      
+      }
 
       DEBUG_PRINT("header=[");
       DEBUG_PRINTLN(header.c_str());
-      DEBUG_PRINTLN("]");     
+      DEBUG_PRINTLN("]");
 
-      FREERAM_PRINT; 
+      FREERAM_PRINT;
 
       client.println(F("(HTTP/1.1 200 OK"));
       client.println(F("Content-type:text/html"));
@@ -170,11 +183,11 @@ void loop()
               {
                 char tmp[20];
                 dtostrf(temperatures[i], 3, 6, tmp);
-                                
+
                 client.print(tmp);
                 DEBUG_PRINT("found temp device query, res = [");
                 DEBUG_PRINT(tmp);
-                DEBUG_PRINTLN("]");                
+                DEBUG_PRINTLN("]");
                 found = true;
                 break;
               }
@@ -195,40 +208,96 @@ void loop()
       {
         FREERAM_PRINT;
 
-        client.println(F("<script>function httpGet(theUrl)"));
-        client.println(F("{"));
-        client.println(F("    var xmlHttp = new XMLHttpRequest();"));
-        client.println(F("    xmlHttp.open( \"GET\", theUrl, false );"));
-        client.println(F("    xmlHttp.send( null );"));
-        client.println(F("    return xmlHttp.responseText;"));
-        client.println(F("}</script>"));
-        client.println(F("<html><body>"));
+        client.println(F("<html>"));
+        client.println(F("<link href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css\" rel=\"stylesheet\" integrity=\"sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO\" crossorigin=\"anonymous\">"));
+        client.println(F("<body>"));
+
+        client.println(F("<div class=\"container\">"));
 
         // interactive
         client.println(F("<h1>Temperature sensors</h1>"));
         if (temperatureDeviceCount > 0)
         {
-          client.println(F("<table><thead><tr><td><b>Temp Sensor</b></td><td><b>Value (C)</b></td><td><b>Action</b></td></tr></thead>"));
+          client.println(F("<div class=\"row\">"));
+          client.println(F("<div class=\"col\">"));
+          client.println(F("<div class=\"table-container\">"));
+          client.println(F("<div class=\"table table-striped\">"));
+          client.println(F("<table>"));
+          client.println(F("<thead><tr><th scope=\"col\"><b>Temp Sensor</b></th><th scope=\"col\"><b>Value (C)</b></th><th scope=\"col\"><b>Action</b></th></tr></thead>"));
           client.println(F("<tbody>"));
           char tmp[20];
           for (int i = 0; i < temperatureDeviceCount; ++i)
           {
             client.print(F("<tr><td>"));
             client.print(tempDevHexAddress[i]);
-            client.print(F("</td><td>"));
+            client.print(F("</td><td><span id='t"));
+            client.print(tempDevHexAddress[i]);
+            client.print(F("'>"));
             dtostrf(temperatures[i], 3, 6, tmp);
             client.print(tmp);
-            client.print(F("</td><td><button onclick='location.reload();'>reload</button></td></tr>"));
+            client.print(F("</span>"));
+            client.print(F("</td><td><button class=\"btn btn-primary\" onclick='reloadTemp(\""));
+            client.print(tempDevHexAddress[i]);
+            client.print(F("\");'>reload</button></td></tr>"));
           }
-          client.println(F("</tbody></table>"));
+          client.println(F("</tbody>"));
+          client.println(F("</table>"));
+          client.println(F("</div>")); // table table-striped
+          client.println(F("</div>")); // table-container
+          client.println(F("</div>")); // col
+          client.println(F("</div>")); // row
+
+          // autoreload function
+          client.println(F("<div class=\"row\">"));
+          client.println(F("<div class=\"col\">"));
+          client.print(F("</td><td><button class=\"btn btn-default\" onclick='reload_enabled=true;'>autoreload</button></td></tr>"));
+          client.println(F("</div>")); // col
+          client.println(F("</div>")); // row
         }
 
         // api
-        client.println(F("<h3>Api</h3>"));
+        client.println(F("<h3 class=\"mt-3\">Api</h3>"));
+        client.println(F("<div class=\"row\">"));
+        client.println(F("<div class=\"col\">"));
         if (temperatureDeviceCount > 0)
         {
           client.print(F("<code>/temp/address</code> ( read temperature of sensor by given 8 hex address )<br/>"));
         }
+        client.println(F("</div>")); // col
+        client.println(F("</div>")); // row
+
+        client.println(F("</div>")); // container
+
+        //
+        // JAVASCRIPTS
+        //
+        client.println(F("<script>"));
+
+        client.println(F("function httpGet(theUrl)"));
+        client.println(F("{"));
+        client.println(F("    var xmlHttp = new XMLHttpRequest();"));
+        client.println(F("    xmlHttp.open( \"GET\", theUrl, false );"));
+        client.println(F("    xmlHttp.send( null );"));
+        client.println(F("    return xmlHttp.responseText;"));
+        client.println(F("}"));
+
+        client.println(F("function reloadTemp(addr)"));
+        client.println(F("{"));
+        client.println(F("    $.get('/temp/' + addr, function(data) { $('#t' + addr)[0].innerText = data; });"));
+        client.println(F("}"));
+
+        client.println(F("var reload_enabled = false;"));
+        client.println(F("setInterval(autoreload, 3000);"));
+        client.println(F("function autoreload()"));
+        client.println(F("{"));
+        client.println(F("    if (!reload_enabled) return;"));
+        client.println(F("    $('.tempdev').each(function (idx) { reloadTemp(this.id); });"));
+        client.println(F("}"));
+
+        client.println(F("</script>"));
+
+        client.println(F("<script src=\"https://code.jquery.com/jquery-3.3.1.min.js\" integrity=\"sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=\" crossorigin=\"anonymous\"></script>"));
+        client.println(F("<script src=\"https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js\"></script>"));
 
         client.println(F("</body></html>"));
 
@@ -238,4 +307,8 @@ void loop()
       client.stop();
     }
   }
+  //else if (TimeDiff(lastTemperatureRead, millis()) > TEMPERATURE_INTERVAL_MS)
+  //{
+//    ReadTemperatures();
+//  }
 }
