@@ -1,6 +1,7 @@
 #define ARDUINO 18070
 
 #define SERIAL_DEBUG
+#define SERIAL_SPEED 57600
 #define MACADDRESS 0x30, 0xcf, 0x8d, 0x9f, 0x5b, 0x89
 #define MYIPADDR 10, 10, 2, 10
 #define MYIPMASK 255, 255, 255, 0
@@ -19,7 +20,7 @@
 
 EthernetServer server = EthernetServer(LISTENPORT);
 
-#define TEMPERATURE_INTERVAL_MS 10000
+#define TEMPERATURE_INTERVAL_MS 5000
 #define TEMPERATURE_ADDRESS_BYTES 8
 #define ONE_WIRE_BUS D3
 
@@ -37,7 +38,7 @@ char **tempDevHexAddress;
 void setup()
 {
 #ifdef SERIAL_DEBUG
-  Serial.begin(115200);
+  Serial.begin(SERIAL_SPEED);
   DEBUG_PRINTLN("STARTUP");
 #endif
 
