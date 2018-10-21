@@ -7,7 +7,7 @@ atmega328 + onewire ds18b20 + ethernet enc28j60
 ## prerequisites
 
 - software
-  - install [vscode arduino](https://github.com/devel0/knowledge/blob/master/arduino/vscode-arduino.md)
+  - install [vscode arduino](https://github.com/devel0/knowledge/blob/master/electronics/vscode-arduino.md)
   - install [UIPEthernet](https://github.com/UIPEthernet/UIPEthernet)
   - install [MemoryUsage](https://github.com/Locoduino/MemoryUsage)
 - see [iot-atmega328p-enc28j60](https://github.com/devel0/iot-atmega328p-enc28j60/blob/master/README.md)
