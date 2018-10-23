@@ -28,14 +28,14 @@ code .
 
 ## notes
 
-- current size
+- current size (serial debug included)
 
 ```
-Sketch uses 28648 bytes (87%) of program storage space. Maximum is 32768 bytes.
-Global variables use 1424 bytes (69%) of dynamic memory, leaving 624 bytes for local variables. Maximum is 2048 bytes.
+Sketch uses 28082 bytes (85%) of program storage space. Maximum is 32768 bytes.
+Global variables use 1360 bytes (66%) of dynamic memory, leaving 688 bytes for local variables. Maximum is 2048 bytes.
 ```
 
-- to enable serial debug uncomment [SERIAL_DEBUG](https://github.com/devel0/iot-temp-sensors/blob/c0d3a918df7af414b01e09c07f2cd6cc2e3d634d/temp-sensors/temp-sensors.ino#L3)
+- to change serial debug speed edit `arduino-utils/DebugMacros.h`
 - can work in [dhcp](https://github.com/devel0/iot-temp-sensors/blob/c0d3a918df7af414b01e09c07f2cd6cc2e3d634d/temp-sensors/temp-sensors.ino#L62) ( uses some more flash )
 - [temperature update interval](https://github.com/devel0/iot-temp-sensors/blob/c0d3a918df7af414b01e09c07f2cd6cc2e3d634d/temp-sensors/temp-sensors.ino#L23) at [server side](https://github.com/devel0/iot-temp-sensors/blob/c0d3a918df7af414b01e09c07f2cd6cc2e3d634d/temp-sensors/temp-sensors.ino#L354-L357) set to 5 sec
 - [onewire bus](https://github.com/devel0/iot-temp-sensors/blob/c0d3a918df7af414b01e09c07f2cd6cc2e3d634d/temp-sensors/temp-sensors.ino#L25) set to digital pin 3 ( [pin mapping](https://www.arduino.cc/en/Hacking/PinMapping168) )
