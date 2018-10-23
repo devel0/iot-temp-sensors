@@ -1,30 +1,35 @@
 #define ARDUINO 18070
 
-//#define SERIAL_DEBUG
-#define SERIAL_SPEED 57600
 #define MACADDRESS 0x30, 0xcf, 0x8d, 0x9f, 0x5b, 0x89
 #define MYIPADDR 10, 10, 2, 10
 #define MYIPMASK 255, 255, 255, 0
 #define MYDNS 10, 10, 0, 6
 #define MYGW 10, 10, 0, 1
 #define LISTENPORT 80
+#define MAX_HEADER_SIZE 80
+// EDIT DebugMacros to set SERIAL_SPEED and enable/disable DPRINT_SERIAL
+
+//-------------------------
 
 #include <Arduino.h>
-//#include <pins_arduino.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <mywifikey.h>
-#include <arduino-utils.h>
-#include <UIPEthernet.h>
-#include <MemoryUsage.h>
 
+#include <UIPEthernet.h>
+
+#include <DPrint.h>
+#include <Util.h>
+using namespace SearchAThing::Arduino;
+
+String header;
 EthernetServer server = EthernetServer(LISTENPORT);
 
 #define TEMPERATURE_INTERVAL_MS 5000
 #define TEMPERATURE_ADDRESS_BYTES 8
-#define ONE_WIRE_BUS D3
+#define ONE_WIRE_BUS 3
 
-OneWire tempOneWire(3);
+OneWire tempOneWire(ONE_WIRE_BUS);
 DallasTemperature DS18B20(&tempOneWire);
 
 int temperatureDeviceCount = 0;
@@ -33,24 +38,20 @@ DeviceAddress *tempDevAddress; // DeviceAddress defined as uint8_t[8]
 char **tempDevHexAddress;
 
 char *tempDescription[][2] = {
-    {"288aef140500008d", "test1"},
-    {"288aef14050000ad", "test2"}};
+    {"28b5742407000084", "external"},
+    {"2833bf3a050000ec", "bedroom"},
+    {"28cc5d3a050000e3", "bathroom"},
+    {"288aef140500008d", "lab"}};
 
 //
 // SETUP
 //
 void setup()
 {
-#ifdef SERIAL_DEBUG
-  Serial.begin(SERIAL_SPEED);
-  DEBUG_PRINTLN("STARTUP");
-#endif
+  DPrintln(F("STARTUP"));
 
+  header.reserve(MAX_HEADER_SIZE);
   SetupTemperatureDevices();
-
-#if DEBUG_PRINT
-  FREERAM_PRINT;
-#endif
 
   uint8_t mac[6] = {MACADDRESS};
   uint8_t myIP[4] = {MYIPADDR};
@@ -64,17 +65,16 @@ void setup()
   // static
   Ethernet.begin(mac, myIP, myDNS, myGW, myMASK);
 
-#ifdef SERIAL_DEBUG
-  DEBUG_PRINT("my ip : ");
-  Ethernet.localIP().printTo(Serial);
-  DEBUG_PRINTLN();
-#endif
+  DPrint("my ip : ");
+  for (int i = 0; i < 4; ++i)
+  {
+    DPrint(Ethernet.localIP()[i]);
+    if (i != 3)
+      DPrint('.');
+  }
+  DPrintln();
 
   server.begin();
-
-#if DEBUG_PRINT
-  FREERAM_PRINT;
-#endif
 }
 
 //
@@ -84,7 +84,8 @@ void SetupTemperatureDevices()
 {
   DS18B20.begin();
   temperatureDeviceCount = DS18B20.getDeviceCount();
-  DEBUG_PRINTF("temperature device count = %d\n", temperatureDeviceCount);
+  DPrint(F("temperature device count = "));
+  DPrintIntln(temperatureDeviceCount);
   if (temperatureDeviceCount > 0)
   {
     temperatures = new float[temperatureDeviceCount];
@@ -105,7 +106,11 @@ void SetupTemperatureDevices()
               tempDevAddress[i][6],
               tempDevAddress[i][7]);
 
-      DEBUG_PRINTF("sensor [%d] address = %s\n", i, tempDevHexAddress[i]);
+      DPrint("sensor [");
+      DPrintInt(i);
+      DPrint("] address = ");
+      DPrint(tempDevHexAddress[i]);
+      DPrintln();
 
       DS18B20.setResolution(12);
     }
@@ -120,12 +125,12 @@ unsigned long lastTemperatureRead;
 //
 void ReadTemperatures()
 {
-  DEBUG_PRINTLN("reading temperatures");
+  DPrintln(F("reading temperatures"));
   DS18B20.requestTemperatures();
   for (int i = 0; i < temperatureDeviceCount; ++i)
   {
     auto temp = DS18B20.getTempC(tempDevAddress[i]);
-    //DEBUG_PRINTF("temperature sensor %d = %f\n", i, temp);
+    DPrint(F("temperature sensor [")); DPrintInt(i); DPrint(F("] = ")); DPrintln(temp, 4);    
     temperatures[i] = temp;
   }
   lastTemperatureRead = millis();
@@ -153,40 +158,35 @@ void loop()
 
   if (EthernetClient client = server.available())
   {
-    DEBUG_PRINT("received message : [");
-
-    String header;
 
     while ((size = client.available()) > 0)
     {
-      DEBUG_PRINTF("size=%d\n", size);
+      //////////////// DEBUG_PRINTF("size=%d\n", size);
       bool foundcmd = false;
 
-      for (int i = 0; i < 80; ++i)
+      header = "";
+
+      for (int i = 0; i < min(MAX_HEADER_SIZE, size); ++i)
       {
         char c = (char)client.read();
-        DEBUG_PRINT("char = [");
-        DEBUG_PRINTLN(c);
+        //        DEBUG_PRINT("char = [");
+        //DEBUG_PRINTLN(c);
         if (c == '\r')
         {
-          DEBUG_PRINTLN("found newline");
+          //      DEBUG_PRINTLN("found newline");
           break;
         }
         header.concat(c);
       }
 
-      DEBUG_PRINT("header=[");
-      DEBUG_PRINTLN(header.c_str());
-      DEBUG_PRINTLN("]");
+      //////////////// DEBUG_PRINT("header=[");
+      ///////////////// DEBUG_PRINT(header.c_str());
+      ////////////////// DEBUG_PRINTLN("]");
 
-#if DEBUG_PRINT
-      FREERAM_PRINT;
-#endif
-
-      client.println(F("(HTTP/1.1 200 OK"));
+   /*   client.println(F("(HTTP/1.1 200 OK"));
       client.println(F("Content-type:text/html"));
       client.println(F("Connection: close"));
-      client.println();
+      client.println();*/
 
       foundcmd = false;
 
@@ -202,17 +202,15 @@ void loop()
           if (header.length() - q.length() >= 8)
           {
             for (int i = 0; i < temperatureDeviceCount; ++i)
-            {
+            {              
               if (strncmp(header.c_str() + q.length(), tempDevHexAddress[i],
                           2 * TEMPERATURE_ADDRESS_BYTES) == 0)
               {
                 char tmp[20];
-                dtostrf(temperatures[i], 3, 6, tmp);
+                FloatToString(tmp, temperatures[i], 6);                
 
                 client.print(tmp);
-                DEBUG_PRINT("found temp device query, res = [");
-                DEBUG_PRINT(tmp);
-                DEBUG_PRINTLN("]");
+                
                 found = true;
                 break;
               }
@@ -228,12 +226,9 @@ void loop()
 
       //--------------------------
       // HELP
-      //--------------------------
+      //--------------------------      
       if (header.indexOf("GET /") >= 0)
-      {
-#if DEBUG_PRINT
-        FREERAM_PRINT;
-#endif
+      {      
 
         client.println(F("<html>"));
         client.println(F("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head>"));
@@ -255,7 +250,7 @@ void loop()
           client.print(F("<th scope=\"col\"><b>Address</b></th>"));
           client.print(F("<th scope=\"col\"><b>Description</b></th>"));
           client.print(F("<th scope=\"col\"><b>Value (C)</b></th>"));
-          client.print(F("<th scope=\"col\"><b>Action</b></th>"));          
+          client.print(F("<th scope=\"col\"><b>Action</b></th>"));
           client.print(F("</tr></thead>"));
           client.println(F("<tbody>"));
           char tmp[20];
@@ -277,14 +272,14 @@ void loop()
             client.print(F("<td><span id='t"));
             client.print(tempDevHexAddress[i]);
             client.print(F("'>"));
-            dtostrf(temperatures[i], 3, 6, tmp);
+            FloatToString(tmp, temperatures[i], 6);            
             client.print(tmp);
             client.print(F("</span>"));
 
             // action
             client.print(F("</td><td><button class=\"btn btn-primary\" onclick='reloadTemp(\""));
             client.print(tempDevHexAddress[i]);
-            client.print(F("\");'>reload</button></td>"));            
+            client.print(F("\");'>reload</button></td>"));
 
             client.print(F("</tr>"));
           }
@@ -311,6 +306,14 @@ void loop()
         {
           client.print(F("<code>/temp/address</code> ( read temperature of sensor by given 8 hex address )<br/>"));
         }
+        client.println(F("</div>")); // col
+        client.println(F("</div>")); // row
+
+        client.println(F("<div class=\"row\">"));
+        client.println(F("<div class=\"col\">"));
+        client.println(F("<code>Freeram : "));
+        client.println(FreeMemorySum());
+        client.println("</code><br/>");
         client.println(F("</div>")); // col
         client.println(F("</div>")); // row
 
@@ -342,10 +345,6 @@ void loop()
         client.println(F("<script src=\"https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js\"></script>"));
 
         client.println(F("</body></html>"));
-
-#if DEBUG_PRINT
-        FREERAM_PRINT;
-#endif
       }
 
       client.stop();
