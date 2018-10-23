@@ -9,6 +9,12 @@
 #define MAX_HEADER_SIZE 80
 // EDIT DebugMacros to set SERIAL_SPEED and enable/disable DPRINT_SERIAL
 
+char *tempDescription[][2] = {
+    {"28b5742407000084", "external"},
+    {"2833bf3a050000ec", "bedroom"},
+    {"28cc5d3a050000e3", "bathroom"},
+    {"288aef140500008d", "lab"}};
+
 //-------------------------
 
 #include <Arduino.h>
@@ -36,12 +42,6 @@ int temperatureDeviceCount = 0;
 float *temperatures = NULL;
 DeviceAddress *tempDevAddress; // DeviceAddress defined as uint8_t[8]
 char **tempDevHexAddress;
-
-char *tempDescription[][2] = {
-    {"28b5742407000084", "external"},
-    {"2833bf3a050000ec", "bedroom"},
-    {"28cc5d3a050000e3", "bathroom"},
-    {"288aef140500008d", "lab"}};
 
 //
 // SETUP
@@ -130,7 +130,10 @@ void ReadTemperatures()
   for (int i = 0; i < temperatureDeviceCount; ++i)
   {
     auto temp = DS18B20.getTempC(tempDevAddress[i]);
-    DPrint(F("temperature sensor [")); DPrintInt(i); DPrint(F("] = ")); DPrintln(temp, 4);    
+    DPrint(F("temperature sensor ["));
+    DPrintInt(i);
+    DPrint(F("] = "));
+    DPrintln(temp, 4);
     temperatures[i] = temp;
   }
   lastTemperatureRead = millis();
@@ -161,7 +164,6 @@ void loop()
 
     while ((size = client.available()) > 0)
     {
-      //////////////// DEBUG_PRINTF("size=%d\n", size);
       bool foundcmd = false;
 
       header = "";
@@ -169,24 +171,13 @@ void loop()
       for (int i = 0; i < min(MAX_HEADER_SIZE, size); ++i)
       {
         char c = (char)client.read();
-        //        DEBUG_PRINT("char = [");
-        //DEBUG_PRINTLN(c);
+
         if (c == '\r')
         {
-          //      DEBUG_PRINTLN("found newline");
           break;
         }
         header.concat(c);
       }
-
-      //////////////// DEBUG_PRINT("header=[");
-      ///////////////// DEBUG_PRINT(header.c_str());
-      ////////////////// DEBUG_PRINTLN("]");
-
-   /*   client.println(F("(HTTP/1.1 200 OK"));
-      client.println(F("Content-type:text/html"));
-      client.println(F("Connection: close"));
-      client.println();*/
 
       foundcmd = false;
 
@@ -202,15 +193,15 @@ void loop()
           if (header.length() - q.length() >= 8)
           {
             for (int i = 0; i < temperatureDeviceCount; ++i)
-            {              
+            {
               if (strncmp(header.c_str() + q.length(), tempDevHexAddress[i],
                           2 * TEMPERATURE_ADDRESS_BYTES) == 0)
               {
                 char tmp[20];
-                FloatToString(tmp, temperatures[i], 6);                
+                FloatToString(tmp, temperatures[i], 6);
 
                 client.print(tmp);
-                
+
                 found = true;
                 break;
               }
@@ -226,9 +217,9 @@ void loop()
 
       //--------------------------
       // HELP
-      //--------------------------      
+      //--------------------------
       if (header.indexOf("GET /") >= 0)
-      {      
+      {
 
         client.println(F("<html>"));
         client.println(F("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head>"));
@@ -272,7 +263,7 @@ void loop()
             client.print(F("<td><span id='t"));
             client.print(tempDevHexAddress[i]);
             client.print(F("'>"));
-            FloatToString(tmp, temperatures[i], 6);            
+            FloatToString(tmp, temperatures[i], 6);
             client.print(tmp);
             client.print(F("</span>"));
 
