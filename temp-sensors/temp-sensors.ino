@@ -224,12 +224,13 @@ void loop()
         client.println(F("<html>"));
         client.println(F("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head>"));
         client.println(F("<link href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css\" rel=\"stylesheet\" integrity=\"sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO\" crossorigin=\"anonymous\">"));
+        client.println(F("<link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.4.1/css/all.css\" integrity=\"sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz\" crossorigin=\"anonymous\">"));
         client.println(F("<body>"));
 
         client.println(F("<div class=\"container\">"));
 
         // interactive
-        client.println(F("<h1>Temperature sensors</h1>"));
+        client.println(F("<div class=\"row\"><div class=\"col-auto\"><h1>Temperature sensors</h1></div><div class=\"col\"><i class=\"fas fa-spin fa-spinner j-spin collapse\"></i></div></div>"));
         if (temperatureDeviceCount > 0)
         {
           client.println(F("<div class=\"row\">"));
@@ -300,7 +301,7 @@ void loop()
         client.println(F("</div>")); // col
         client.println(F("</div>")); // row
 
-        client.println(F("<div class=\"row\">"));
+        client.println(F("<div class=\"row mt-2\">"));
         client.println(F("<div class=\"col\">"));
         client.println(F("<code>Freeram : "));
         client.println(FreeMemorySum());
@@ -317,7 +318,8 @@ void loop()
 
         client.println(F("function reloadTemp(addr)"));
         client.println(F("{"));
-        client.println(F("    $.get('/temp/' + addr, function(data) { $('#t' + addr)[0].innerText = data; });"));
+        client.println(F("    $('.j-spin').removeClass('collapse');"));
+        client.println(F("    $.get('/temp/' + addr, function(data) { $('.j-spin').addClass('collapse'); $('#t' + addr)[0].innerText = data; });"));
         client.println(F("}"));
 
         client.println(F("var reload_enabled = false;"));
