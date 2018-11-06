@@ -2,6 +2,8 @@
 
 atmega328 + onewire ds18b20 + ethernet enc28j60
 
+| **update** : version with W5500/sd (but [compatible enc28j60](https://github.com/devel0/iot-temp-sensors-sd-card/tree/3a266da685038b01ead51b2ce6683a975fa4d38f#roadmap)) card [here](https://github.com/devel0/iot-temp-sensors-sd-card) ; schematics [here](https://easyeda.com/editor#id=|7506cd41b26244d4b4f3a225eba49999)) just skip sd card
+
 ![img](doc/Selection_003.png)
 
 ## prerequisites
