@@ -30,11 +30,11 @@ var reload_enabled = false;
 setInterval(autoreload, 3000);
 
 function autoreload() {
+    if (!reload_enabled) return;
     reloadall();
 }
 
-function reloadall() {
-    if (!reload_enabled) return;
+function reloadall() {    
     $('.tempdev').each(function (idx) {
         let v = this.innerText;
         console.log('addr=[' + v + ']');
