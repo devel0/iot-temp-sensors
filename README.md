@@ -2,20 +2,22 @@
 
 atmega328 + onewire ds18b20 + ethernet enc28j60
 
+![img](https://github.com/devel0/iot-temp-sensors-sd-card/blob/master/doc/20181106_143657x.jpg)
 ![img](doc/Selection_003.png)
 
-## toc
 - [features](#features)
 - [prerequisites](#prerequisites)
 - [config](#config)
 - [debugging](#debugging)
 - [api](#api)
-- [sketch size](#sketch-size)  
+- [sketch size](#sketch-size)
+- [security considerations](#security-considerations)
 
 ## features
 
 - easy customization through direct index.htm and app.js editing and debugging locally
 - automatic compilatio of index.htm.h and app.js.h to be included as flash string
+- [alloc automatically](https://github.com/devel0/iot-temp-sensors/blob/747eedead33772415a47ea5b0cbd67a9d4185bc4/temp-sensors/temp-sensors.ino#L152-L167) a backlog of temperature recording based upon available ram
 
 ## prerequisites
 
@@ -57,3 +59,8 @@ atmega328 + onewire ds18b20 + ethernet enc28j60
 Sketch uses 24534 bytes (74%) of program storage space. Maximum is 32768 bytes.
 Global variables use 1169 bytes (57%) of dynamic memory, leaving 879 bytes for local variables. Maximum is 2048 bytes.
 ```
+
+## security considerations
+
+- see [prerequisite considerations](https://github.com/devel0/iot-atmega328p-enc28j60/tree/4a4fc753572a2c6fd427d38278091163c69b46cd#security-considerations)
+- [ENABLE_CORS](https://github.com/devel0/iot-temp-sensors/blob/8baeae070887b1b4300d076d6dee94ce3c4f6a09/temp-sensors/temp-sensors.ino#L12) even disabled not imply any check at server(atmega)-side so effectively a non-browser request can execute request from any crossing domain; can mitigate wrapping with [nginx](https://enable-cors.org/server_nginx.html)
