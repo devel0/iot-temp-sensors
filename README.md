@@ -4,6 +4,14 @@ atmega328 + onewire ds18b20 + ethernet enc28j60
 
 ![img](doc/Selection_003.png)
 
+## toc
+- [features](#features)
+- [prerequisites](#prerequisites)
+- [config](#config)
+- [debugging](#debugging)
+- [api](#api)
+- [sketch size](#sketch-size)  
+
 ## features
 
 - easy customization through direct index.htm and app.js editing and debugging locally
@@ -29,6 +37,17 @@ atmega328 + onewire ds18b20 + ethernet enc28j60
 - double click `index.htm` from file manager to open in a browser
 - now webpage talk to atmega webapi through enc28j60 ( can use F12 and set some breakpoints from browser, may need useful to click on browser pretty button to format code because its minified )
 - note : modified app.js and index.htm will compiled into flash automatically through [prebuild](https://github.com/devel0/iot-temp-sensors/blob/432999ee57a9892da64955140d62139edcb04fc9/temp-sensors/.vscode/arduino.json#L6) utility [gen-h](https://github.com/devel0/iot-temp-sensors/blob/432999ee57a9892da64955140d62139edcb04fc9/temp-sensors/gen-h)
+
+## api
+
+| address | content type | result example |
+|---|---|---|
+| `/tempdevices` | json | `{"tempdevices":["28886f5a050000dd","2865e05a0500001a","28af8123070000e2"]}` |
+| `/temp/id` | text | `19.562500` |
+| `/info` | json | `{"freeram":187, "history_size":123, "history_interval_sec":10}` |
+| `/temphistory` | json | `[{"28886f5a050000dd":[20,20,20,20,20,20,20,20,20,20,21,24,25,27,28]},{"2865e05a0500001a":[20,20,20,20,20,20,20,20,20,20,20,20,20,20,20]},{"28af8123070000e2":[21,21,21,21,21,21,21,21,21,21,21,21,21,21,21]}]` |
+| `/app.js` | js | content of app.js |
+| `/` | html | content of index.htm |
 
 ## sketch size
 
