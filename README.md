@@ -62,5 +62,5 @@ Global variables use 1169 bytes (57%) of dynamic memory, leaving 879 bytes for l
 
 ## security considerations
 
-- see [prerequisite considerations]()
+- see [prerequisite considerations](https://github.com/devel0/iot-atmega328p-enc28j60/tree/4a4fc753572a2c6fd427d38278091163c69b46cd#security-considerations)
 - [ENABLE_CORS](https://github.com/devel0/iot-temp-sensors/blob/8baeae070887b1b4300d076d6dee94ce3c4f6a09/temp-sensors/temp-sensors.ino#L12) even disabled not imply any check at server(atmega)-side so effectively a non-browser request can execute request from any crossing domain; can mitigate wrapping with [nginx](https://enable-cors.org/server_nginx.html)
