@@ -2,6 +2,7 @@
 
 atmega328 + onewire ds18b20 + ethernet enc28j60
 
+![img](https://github.com/devel0/iot-temp-sensors-sd-card/blob/master/doc/20181106_143657x.jpg)
 ![img](doc/Selection_003.png)
 
 - [features](#features)
