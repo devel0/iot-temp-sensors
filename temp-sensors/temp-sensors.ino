@@ -151,7 +151,7 @@ void SetupTemperatureDevices()
     printFreeram();
     auto freeram = FreeMemorySum();
     TEMPERATURE_HISTORY_SIZE = (freeram - TEMPERATURE_HISTORY_FREERAM_THRESHOLD) / temperatureDeviceCount;
-
+    
     auto required_size = sizeof(int8_t) * temperatureDeviceCount * TEMPERATURE_HISTORY_SIZE;
 
     temperatureHistory = (int8_t **)malloc(sizeof(int8_t *) * temperatureDeviceCount);
@@ -229,7 +229,29 @@ void loop()
 {
   size_t size;
 
-  if (EthernetClient client = server.available())
+  if (TimeDiff(lastTemperatureRead, millis()) > TEMPERATURE_INTERVAL_MS)
+  {
+    printFreeram();
+    ReadTemperatures();
+  }
+  if (temperatureHistory != NULL &&
+      (TimeDiff(lastTemperatureHistoryRecord, millis()) > 1000UL * TEMPERATURE_HISTORY_INTERVAL_SEC))
+  {
+    if (temperatureHistoryFillCnt < TEMPERATURE_HISTORY_SIZE)
+      ++temperatureHistoryFillCnt;
+
+    if (temperatureHistoryOff == TEMPERATURE_HISTORY_SIZE)
+      temperatureHistoryOff = 0;
+
+    for (int i = 0; i < temperatureDeviceCount; ++i)
+    {
+      int8_t t = trunc(round(temperatures[i]));
+      temperatureHistory[i][temperatureHistoryOff] = t;
+    }
+    ++temperatureHistoryOff;
+    lastTemperatureHistoryRecord = millis();
+  }
+  else if (EthernetClient client = server.available())
   {
 
     while ((size = client.available()) > 0)
@@ -239,7 +261,6 @@ void loop()
       for (int i = 0; i < min(MAX_HEADER_SIZE, size); ++i)
       {
         char c = (char)client.read();
-        DPrintln(c);
 
         if (c == '\r')
         {
@@ -248,13 +269,9 @@ void loop()
         header.concat(c);
       }
 
-      DPrint("Header [");
-      DPrint(header.c_str());
-      DPrintln(']');
-
       //--------------------------
       // /tempdevices
-      //--------------------------      
+      //--------------------------
       if (header.indexOf("GET /tempdevices") >= 0)
       {
         clientOk(client, CCTYPE_JSON);
@@ -277,15 +294,14 @@ void loop()
 
       //--------------------------
       // /temp/{id}
-      //--------------------------      
+      //--------------------------
       if (header.indexOf("GET /temp/") >= 0)
       {
         auto hbasesize = 10; // "GET /temp/"
         bool found = false;
-        DPrintln("XXX");
+        
         if (header.length() - hbasesize >= 8)
-        {
-          DPrintln("AZZZ");
+        {          
           clientOk(client, CCTYPE_TEXT);
 
           for (int i = 0; i < temperatureDeviceCount; ++i)
@@ -312,10 +328,13 @@ void loop()
 
       //--------------------------
       // /temphistory
-      //--------------------------      
+      //--------------------------
       if (header.indexOf("GET /temphistory") >= 0)
       {
         clientOk(client, CCTYPE_JSON);
+
+        DPrint(F("temperatureHistoryFillCnt:")); DPrintln(temperatureHistoryFillCnt);
+        DPrint(F("temperatureHistoryOff:")); DPrintln(temperatureHistoryOff);
 
         client.print('[');
         for (int i = 0; i < temperatureDeviceCount; ++i)
@@ -323,7 +342,7 @@ void loop()
           client.print(F("{\""));
           client.print(tempDevHexAddress[i]);
           client.print(F("\":["));
-          auto j = temperatureHistoryFillCnt == TEMPERATURE_HISTORY_SIZE ? temperatureHistoryOff : 0;
+          auto j = (temperatureHistoryFillCnt == TEMPERATURE_HISTORY_SIZE) ? temperatureHistoryOff : 0;
           auto size = min(temperatureHistoryFillCnt, TEMPERATURE_HISTORY_SIZE);
           for (int k = 0; k < size; ++k)
           {
@@ -387,7 +406,7 @@ void loop()
       //--------------------------
       // /
       //--------------------------
-      if (header.indexOf("GET /") >= 0)
+      if (header.indexOf("GET / ") >= 0 || header.indexOf("GET /index.htm") >= 0)
       {
         DPrintln(F("serving index.htm"));
 
@@ -400,31 +419,6 @@ void loop()
         client.stop();
         break;
       }
-    }
-  }
-  else
-  {
-    if (TimeDiff(lastTemperatureRead, millis()) > TEMPERATURE_INTERVAL_MS)
-    {
-      printFreeram();
-      ReadTemperatures();
-    }
-    if (temperatureHistory != NULL &&
-        (TimeDiff(lastTemperatureHistoryRecord, millis()) > 1000UL * TEMPERATURE_HISTORY_INTERVAL_SEC))
-    {
-      if (temperatureHistoryFillCnt < TEMPERATURE_HISTORY_SIZE)
-        ++temperatureHistoryFillCnt;
-
-      if (temperatureHistoryOff == TEMPERATURE_HISTORY_SIZE)
-        temperatureHistoryOff = 0;
-
-      for (int i = 0; i < temperatureDeviceCount; ++i)
-      {
-        int8_t t = trunc(round(temperatures[i]));
-        temperatureHistory[i][temperatureHistoryOff] = t;        
-      }
-      ++temperatureHistoryOff;
-      lastTemperatureHistoryRecord = millis();
     }
   }
 }

@@ -25,11 +25,52 @@ if (!reload_enabled) return;\
 reloadall();\
 }\
 \
-function reloadall() {\
+async function reloadall() {\
 $('.tempdev').each(function (idx) {\
 let v = this.innerText;\
 console.log('addr=[' + v + ']');\
 reloadTemp(v);\
+});\
+\
+const res = await $.ajax({\
+url: baseurl + \"/temphistory\",\
+type: 'GET'\
+});\
+\
+var colors = ['orange', 'yellow', 'green', 'blue', 'violet', 'black', 'red']\
+var ctx = document.getElementById(\"myChart\").getContext('2d');\
+\
+var i = 0;\
+var dss = [];\
+$.each(res, function (idx, data) {\
+id = Object.keys(data)[0];\
+desc = id;\
+q = $.grep(sensorDesc, (el, idx) => el.id == id);\
+if (q.length > 0) desc = q[0].description;\
+\
+if (i > colors.length - 1) color = 'brown';\
+else color = colors[i];\
+dss.push({\
+borderColor: color,\
+label: desc,\
+data: [{\
+x: 0,\
+y: 1\
+}, {\
+x: 1,\
+y: 2\
+\
+}]\
+});\
+\
+++i;\
+});\
+\
+var myChart = new Chart(ctx, {\
+type: 'line',\
+data: {\
+datasets: dss\
+}\
 });\
 }\
 \
@@ -58,12 +99,7 @@ q = $.grep(sensorDesc, (el, idx) => el.id == tempId);\
 if (q.length > 0) h += q[0].description;\
 h += \"</td>\";\
 \
-const restemp = await $.ajax({\
-url: baseurl + '/temp/' + tempId,\
-type: 'GET'\
-});\
 h += \"<td><span id='t\" + tempId + \"'>\";\
-h += restemp;\
 h += \"</span></td>\";\
 \
 h += \"<td><button class='btn btn-primary' onclick='reloadTemp(\\\"\" + res.tempdevices[i] + \"\\\")'>reload</button></td>\";\
@@ -74,10 +110,12 @@ h += \"</tr>\";\
 $('#tbody-temp')[0].innerHTML = h;\
 \
 const res2 = await $.ajax({\
-url: baseurl + '/freeram',\
+url: baseurl + '/info',\
 type: 'GET'\
 });\
-$('#freeram')[0].innerHTML = res2;\
+$('#info')[0].innerHTML = JSON.stringify(res2, null, 2);\
+\
+reloadall();\
 }\
 \
 myfn();\

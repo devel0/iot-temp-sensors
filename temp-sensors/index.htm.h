@@ -5,9 +5,9 @@ F("<html>\
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
 </head>\
 \
-<link href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css\" rel=\"stylesheet\" integrity=\"sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO\"\
-crossorigin=\"anonymous\">\
-<link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.4.1/css/all.css\" integrity=\"sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz\"\
+<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/css/bootstrap.min.css\"\
+integrity=\"sha256-eSi1q2PG6J7g7ib17yAaWMcrr5GrtohYChqibrV7PBE=\" crossorigin=\"anonymous\" />\
+<link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.5.0/css/all.css\" integrity=\"sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU\"\
 crossorigin=\"anonymous\">\
 \
 <body>\
@@ -20,6 +20,13 @@ crossorigin=\"anonymous\">\
 </div>\
 <div class=\"row\">\
 <div class=\"col\">\
+<h2>Chart</h2>\
+<canvas id=\"myChart\" height=\"80\"></canvas>\
+</div>\
+</div>\
+<div class=\"row\">\
+<div class=\"col\">\
+<h2>Tabular</h2>\
 <div class=\"table-container\">\
 <div class=\"table table-striped\">\
 <table class=\"table\">\
@@ -45,20 +52,21 @@ crossorigin=\"anonymous\">\
 <button class=\"btn btn-default\" onclick='reload_enabled=true;'>autoreload</button>\
 </div>\
 </div>\
-<h3 class=\"mt-3\">Api</h3>\
-<div class=\"row\">\
+<div class=\"row mt-3\">\
 <div class=\"col\">\
-<code>/temp/address</code> ( read temperature of sensor by given 8 hex address )<br />\
-<code>/tempdevices</code> ( return a json list of temperature devices )<br />\
-Freeram : <code id='freeram'></code>\
+<h3>Misc</h3>\
+<a href=\"https://github.com/devel0/iot-temp-sensors/tree/f0622a62268a06e570ea803fd9c3033b0ce1494c#api\">API</a>\
+Info : <code id='info'></code>\
 </div>\
 </div>\
 </div>\
 \
-<script src=\"https://code.jquery.com/jquery-3.3.1.min.js\" integrity=\"sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=\"\
+<script src=\"https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js\" integrity=\"sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=\"\
 crossorigin=\"anonymous\"></script>\
-<script src=\"https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js\"></script>\
-\
+<script src=\"https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/js/bootstrap.min.js\" integrity=\"sha256-VsEqElsCHSGmnmHXGQzvoWjWwoznFSZc6hs7ARLRacQ=\"\
+crossorigin=\"anonymous\"></script>\
+<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.min.js\" integrity=\"sha256-oSgtFCCmHWRPQ/JmR4OoZ3Xke1Pw4v50uh6pLcu+fIc=\"\
+crossorigin=\"anonymous\"></script>\
 <script src=\"app.js\"></script>\
 </body>\
 \

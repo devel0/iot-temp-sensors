@@ -17,6 +17,12 @@ var debug = true;
 
 //==============================================================================
 
+requirejs.config({
+    "moment": "://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"
+});
+
+var history_interval_sec = 10; // updated from /info api
+
 var baseurl = '';
 if (debug) baseurl = 'http://10.10.4.111';
 
@@ -28,18 +34,79 @@ function reloadTemp(addr) {
     });
 }
 var reload_enabled = false;
-setInterval(autoreload, 3000);
+setInterval(autoreload, 10000);
 
 function autoreload() {
     if (!reload_enabled) return;
     reloadall();
 }
 
-function reloadall() {    
+async function reloadall() {
     $('.tempdev').each(function (idx) {
         let v = this.innerText;
         console.log('addr=[' + v + ']');
         reloadTemp(v);
+    });
+
+    const res = await $.ajax({
+        url: baseurl + "/temphistory",
+        type: 'GET'
+    });
+
+    var colors = ['orange', 'yellow', 'green', 'blue', 'violet', 'black', 'red']
+    var ctx = document.getElementById("myChart").getContext('2d');
+
+    var dtnow = moment();
+    console.log('moment now = ' + dtnow.format());
+
+    var i = 0;
+    var dss = [];
+    $.each(res, function (idx, data) {
+        id = Object.keys(data)[0];
+        desc = id;
+        q = $.grep(sensorDesc, (el, idx) => el.id == id);
+        if (q.length > 0) desc = q[0].description;
+
+        if (i > colors.length - 1) color = 'brown';
+        else color = colors[i];
+
+        valcnt = data[id].length;
+
+        dts = [];
+        $.each(data[id], function (idx, val) {
+            console.log('valcnt: ' + valcnt + ' idx: ' + idx);
+            secbefore = (valcnt - idx - 1) * history_interval_sec;
+            console.log('secbefore: ' + secbefore);
+            tt = moment(dtnow).subtract(secbefore, 'seconds');
+            console.log(tt.format());
+            dts.push({
+                t: tt,
+                y: val
+            });
+        });
+
+        dss.push({
+            borderColor: color,
+            label: desc,
+            data: dts
+        });
+
+        ++i;
+    });
+
+    var myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: dss
+        },
+        options: {
+            scales: {
+                xAxes: [{
+                    type: 'time',
+                    position: 'bottom'
+                }]
+            }
+        }
     });
 }
 
@@ -51,6 +118,13 @@ async function myfn() {
         url: baseurl + '/tempdevices',
         type: 'GET'
     });
+    const resnfo = await $.ajax({
+        url: baseurl + '/info',
+        type: 'GET'
+    });
+    history_interval_sec = resnfo.history_interval_sec;
+    console.log('history_interval_sec = ' + history_interval_sec);
+
     $('.j-spin').addClass('collapse');
 
     var h = "";
@@ -72,12 +146,7 @@ async function myfn() {
         h += "</td>";
 
         // value
-        const restemp = await $.ajax({
-            url: baseurl + '/temp/' + tempId,
-            type: 'GET'
-        });
         h += "<td><span id='t" + tempId + "'>";
-        h += restemp;
         h += "</span></td>";
 
         // action
@@ -92,7 +161,9 @@ async function myfn() {
         url: baseurl + '/info',
         type: 'GET'
     });
-    $('#info')[0].innerHTML = JSON.stringify(res2, null,2);
+    $('#info')[0].innerHTML = JSON.stringify(res2, null, 2);
+
+    reloadall();
 }
 
 myfn();
