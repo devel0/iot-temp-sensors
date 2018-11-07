@@ -4,12 +4,12 @@
 //
 //-------------------- PLEASE REVIEW FOLLOW VARIABLES ------------------
 //
-// SECURITY WARNING : uncomment ENABLE_CORS in production!
+// SECURITY WARNING : uncomment ENABLE_CORS=0 in production!
 //---------------------
 // I used CORS policy to allow me write index.htm and app.js outside atmega controller from pc
 // using atmega webapis
 //
-#define ENABLE_CORS
+#define ENABLE_CORS 0
 
 #define MACADDRESS 0x33, 0xcf, 0x8d, 0x9f, 0x5b, 0x89
 #define MYIPADDR 10, 10, 4, 111
@@ -197,7 +197,7 @@ void clientOk(EthernetClient &client, int type)
     break;
   }
 
-#ifdef ENABLE_CORS
+#if ENABLE_CORS == 1
   client.println("Access-Control-Allow-Origin: *");
   client.println();
 #endif
