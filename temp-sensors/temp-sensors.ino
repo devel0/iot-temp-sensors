@@ -1,13 +1,27 @@
 #define ARDUINO 18070
 
-#define MACADDRESS 0x30, 0xcf, 0x8d, 0x9f, 0x5b, 0x89
-#define MYIPADDR 10, 10, 2, 10
+//==============================================================================
+//
+//-------------------- PLEASE REVIEW FOLLOW VARIABLES ------------------
+//
+// SECURITY WARNING : uncomment ENABLE_CORS in production!
+//---------------------
+// I used CORS policy to allow me write index.htm and app.js outside atmega controller from pc
+// using atmega webapis
+//
+#define ENABLE_CORS
+
+#define MACADDRESS 0x33, 0xcf, 0x8d, 0x9f, 0x5b, 0x89
+#define MYIPADDR 10, 10, 4, 111
 #define MYIPMASK 255, 255, 255, 0
 #define MYDNS 10, 10, 0, 6
 #define MYGW 10, 10, 0, 1
 #define LISTENPORT 80
 #define MAX_HEADER_SIZE 80
 // EDIT DebugMacros to set SERIAL_SPEED and enable/disable DPRINT_SERIAL
+
+//
+//==============================================================================
 
 char *tempDescription[][2] = {
     {"28b5742407000084", "external"},
@@ -23,6 +37,8 @@ char *tempDescription[][2] = {
 #include <mywifikey.h>
 
 #include <UIPEthernet.h>
+// edit UIPEthernet/utility/uipethernet-conf.h to customize
+// - define UIP_CONF_UDP=0 to reduce flash size
 
 #include <DPrint.h>
 #include <Util.h>
@@ -43,12 +59,20 @@ float *temperatures = NULL;
 DeviceAddress *tempDevAddress; // DeviceAddress defined as uint8_t[8]
 char **tempDevHexAddress;
 
+void printFreeram()
+{
+  DPrint(F("Freeram : "));
+  DPrintln((long)FreeMemorySum());
+}
+
 //
 // SETUP
 //
 void setup()
 {
   DPrintln(F("STARTUP"));
+
+  printFreeram();
 
   header.reserve(MAX_HEADER_SIZE);
   SetupTemperatureDevices();
@@ -124,8 +148,7 @@ unsigned long lastTemperatureRead;
 // TEMPERATURE READ
 //
 void ReadTemperatures()
-{
-  DPrintln(F("reading temperatures"));
+{  
   DS18B20.requestTemperatures();
   for (int i = 0; i < temperatureDeviceCount; ++i)
   {
@@ -150,6 +173,34 @@ const char *getTempDescription(const char *addr)
     }
   }
   return "not defined";
+}
+
+#define CCTYPE_HTML 0
+#define CCTYPE_JSON 1
+#define CCTYPE_TEXT 2
+
+void clientOk(EthernetClient &client, int type)
+{
+  client.println("HTTP/1.1 200 OK");
+  switch (type)
+  {
+  case CCTYPE_HTML:
+    client.println("Content-Type: text/html");
+    break;
+
+  case CCTYPE_JSON:
+    client.println("Content-Type: application/json");
+    break;
+
+  case CCTYPE_TEXT:
+    client.println("Content-Type: text/plain");
+    break;
+  }
+
+#ifdef ENABLE_CORS
+  client.println("Access-Control-Allow-Origin: *");
+  client.println();
+#endif
 }
 
 //
@@ -186,12 +237,35 @@ void loop()
       //--------------------------
       if (temperatureDeviceCount > 0)
       {
-        String q = String("GET /temp/");
+        String q = String("GET /tempdevices");
+        if (header.indexOf(q) >= 0)
+        {
+          clientOk(client, CCTYPE_JSON);
+
+          client.print("{\"tempdevices\":[");
+          for (int i = 0; i < temperatureDeviceCount; ++i)
+          {
+            client.print('"');
+            client.print(tempDevHexAddress[i]);
+            client.print('"');
+
+            if (i != temperatureDeviceCount - 1)
+              client.print(',');
+          }
+          client.print("]}");
+
+          client.stop();
+          break;
+        }
+
+        q = String("GET /temp/");
         if (header.indexOf(q) >= 0)
         {
           bool found = false;
           if (header.length() - q.length() >= 8)
           {
+            clientOk(client, CCTYPE_TEXT);
+
             for (int i = 0; i < temperatureDeviceCount; ++i)
             {
               if (strncmp(header.c_str() + q.length(), tempDevHexAddress[i],
@@ -220,6 +294,7 @@ void loop()
       //--------------------------
       if (header.indexOf("GET /") >= 0)
       {
+        clientOk(client, CCTYPE_HTML);
 
         client.println(F("<html>"));
         client.println(F("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head>"));
@@ -297,6 +372,7 @@ void loop()
         if (temperatureDeviceCount > 0)
         {
           client.print(F("<code>/temp/address</code> ( read temperature of sensor by given 8 hex address )<br/>"));
+          client.print(F("<code>/tempdevices</code> ( retrieve list of temperature devices )<br/>"));
         }
         client.println(F("</div>")); // col
         client.println(F("</div>")); // row
@@ -345,6 +421,8 @@ void loop()
   }
   else if (TimeDiff(lastTemperatureRead, millis()) > TEMPERATURE_INTERVAL_MS)
   {
+    printFreeram();
+
     ReadTemperatures();
   }
 }
