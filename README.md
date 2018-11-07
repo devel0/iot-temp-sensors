@@ -1,16 +1,15 @@
 # iot-temp-sensors
 
-atmega328 + onewire ds18b20 + ethernet enc28j60
-
-![img](doc/Selection_003.png)
-
-## toc
 - [features](#features)
 - [prerequisites](#prerequisites)
 - [config](#config)
 - [debugging](#debugging)
 - [api](#api)
 - [sketch size](#sketch-size)  
+
+atmega328 + onewire ds18b20 + ethernet enc28j60
+
+![img](doc/Selection_003.png)
 
 ## features
 
