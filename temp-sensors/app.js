@@ -21,7 +21,8 @@ requirejs.config({
     "moment": "://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"
 });
 
-var history_interval_sec = 10; // updated from /info api
+// updated from /info api
+var history_interval_sec = 10;
 
 var baseurl = '';
 if (debug) baseurl = 'http://10.10.4.111';
@@ -53,7 +54,7 @@ async function reloadall() {
         type: 'GET'
     });
 
-    var colors = ['orange', 'yellow', 'green', 'blue', 'violet', 'black', 'red']
+    var colors = ['orange', 'yellow', 'green', 'blue', 'violet', 'black', 'red'];
     var ctx = document.getElementById("myChart").getContext('2d');
 
     var dtnow = moment();

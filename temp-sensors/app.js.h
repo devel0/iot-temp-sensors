@@ -7,6 +7,12 @@ description: \"test\"\
 var debug = false;\
 \
 \
+requirejs.config({\
+\"moment\": \"://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js\"\
+});\
+\
+var history_interval_sec = 10;\
+\
 var baseurl = '';\
 if (debug) baseurl = 'http://10.10.4.111';\
 \
@@ -18,7 +24,7 @@ $('#t' + addr)[0].innerText = data;\
 });\
 }\
 var reload_enabled = false;\
-setInterval(autoreload, 3000);\
+setInterval(autoreload, 10000);\
 \
 function autoreload() {\
 if (!reload_enabled) return;\
@@ -37,8 +43,11 @@ url: baseurl + \"/temphistory\",\
 type: 'GET'\
 });\
 \
-var colors = ['orange', 'yellow', 'green', 'blue', 'violet', 'black', 'red']\
+var colors = ['orange', 'yellow', 'green', 'blue', 'violet', 'black', 'red'];\
 var ctx = document.getElementById(\"myChart\").getContext('2d');\
+\
+var dtnow = moment();\
+console.log('moment now = ' + dtnow.format());\
 \
 var i = 0;\
 var dss = [];\
@@ -50,17 +59,26 @@ if (q.length > 0) desc = q[0].description;\
 \
 if (i > colors.length - 1) color = 'brown';\
 else color = colors[i];\
+\
+valcnt = data[id].length;\
+\
+dts = [];\
+$.each(data[id], function (idx, val) {\
+console.log('valcnt: ' + valcnt + ' idx: ' + idx);\
+secbefore = (valcnt - idx - 1) * history_interval_sec;\
+console.log('secbefore: ' + secbefore);\
+tt = moment(dtnow).subtract(secbefore, 'seconds');\
+console.log(tt.format());\
+dts.push({\
+t: tt,\
+y: val\
+});\
+});\
+\
 dss.push({\
 borderColor: color,\
 label: desc,\
-data: [{\
-x: 0,\
-y: 1\
-}, {\
-x: 1,\
-y: 2\
-\
-}]\
+data: dts\
 });\
 \
 ++i;\
@@ -70,6 +88,14 @@ var myChart = new Chart(ctx, {\
 type: 'line',\
 data: {\
 datasets: dss\
+},\
+options: {\
+scales: {\
+xAxes: [{\
+type: 'time',\
+position: 'bottom'\
+}]\
+}\
 }\
 });\
 }\
@@ -81,6 +107,13 @@ const res = await $.ajax({\
 url: baseurl + '/tempdevices',\
 type: 'GET'\
 });\
+const resnfo = await $.ajax({\
+url: baseurl + '/info',\
+type: 'GET'\
+});\
+history_interval_sec = resnfo.history_interval_sec;\
+console.log('history_interval_sec = ' + history_interval_sec);\
+\
 $('.j-spin').addClass('collapse');\
 \
 var h = \"\";\

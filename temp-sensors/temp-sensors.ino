@@ -21,12 +21,18 @@
 #define ONE_WIRE_BUS 3
 // EDIT DebugMacros to set SERIAL_SPEED and enable/disable DPRINT_SERIAL
 
+// tune follow watching at /info api "history_size"
+// example
+// - history_size=132 if want to keep last 36 hours then
+// - TEMPERATURE_HISTORY_INTERVAL_SEC = 36 * 60 * 60 / 132 = 982
+// this mean that a sample will be recorded each 982 seconds = 16min ( foreach temp device )
+#define TEMPERATURE_HISTORY_INTERVAL_SEC 982
+
 //
 //==============================================================================
 
 #include <Arduino.h>
 
-#define TEMPERATURE_HISTORY_INTERVAL_SEC 10
 unsigned long lastTemperatureHistoryRecord;
 uint8_t temperatureHistoryFillCnt = 0;
 #define TEMPERATURE_HISTORY_FREERAM_THRESHOLD 200
@@ -151,7 +157,7 @@ void SetupTemperatureDevices()
     printFreeram();
     auto freeram = FreeMemorySum();
     TEMPERATURE_HISTORY_SIZE = (freeram - TEMPERATURE_HISTORY_FREERAM_THRESHOLD) / temperatureDeviceCount;
-    
+
     auto required_size = sizeof(int8_t) * temperatureDeviceCount * TEMPERATURE_HISTORY_SIZE;
 
     temperatureHistory = (int8_t **)malloc(sizeof(int8_t *) * temperatureDeviceCount);
@@ -159,7 +165,7 @@ void SetupTemperatureDevices()
     DPrint(F("temperature history size: "));
     DPrint(TEMPERATURE_HISTORY_SIZE);
     DPrint(F(" = "));
-    DPrint(TEMPERATURE_HISTORY_SIZE * (TEMPERATURE_HISTORY_INTERVAL_SEC) / 60 / 60);
+    DPrint((unsigned long)TEMPERATURE_HISTORY_SIZE * (TEMPERATURE_HISTORY_INTERVAL_SEC) / 60 / 60);
     DPrintln(F(" hours"));
     for (int i = 0; i < temperatureDeviceCount; ++i)
     {
@@ -229,29 +235,7 @@ void loop()
 {
   size_t size;
 
-  if (TimeDiff(lastTemperatureRead, millis()) > TEMPERATURE_INTERVAL_MS)
-  {
-    printFreeram();
-    ReadTemperatures();
-  }
-  if (temperatureHistory != NULL &&
-      (TimeDiff(lastTemperatureHistoryRecord, millis()) > 1000UL * TEMPERATURE_HISTORY_INTERVAL_SEC))
-  {
-    if (temperatureHistoryFillCnt < TEMPERATURE_HISTORY_SIZE)
-      ++temperatureHistoryFillCnt;
-
-    if (temperatureHistoryOff == TEMPERATURE_HISTORY_SIZE)
-      temperatureHistoryOff = 0;
-
-    for (int i = 0; i < temperatureDeviceCount; ++i)
-    {
-      int8_t t = trunc(round(temperatures[i]));
-      temperatureHistory[i][temperatureHistoryOff] = t;
-    }
-    ++temperatureHistoryOff;
-    lastTemperatureHistoryRecord = millis();
-  }
-  else if (EthernetClient client = server.available())
+  if (EthernetClient client = server.available())
   {
 
     while ((size = client.available()) > 0)
@@ -299,9 +283,9 @@ void loop()
       {
         auto hbasesize = 10; // "GET /temp/"
         bool found = false;
-        
+
         if (header.length() - hbasesize >= 8)
-        {          
+        {
           clientOk(client, CCTYPE_TEXT);
 
           for (int i = 0; i < temperatureDeviceCount; ++i)
@@ -333,8 +317,10 @@ void loop()
       {
         clientOk(client, CCTYPE_JSON);
 
-        DPrint(F("temperatureHistoryFillCnt:")); DPrintln(temperatureHistoryFillCnt);
-        DPrint(F("temperatureHistoryOff:")); DPrintln(temperatureHistoryOff);
+        DPrint(F("temperatureHistoryFillCnt:"));
+        DPrintln(temperatureHistoryFillCnt);
+        DPrint(F("temperatureHistoryOff:"));
+        DPrintln(temperatureHistoryOff);
 
         client.print('[');
         for (int i = 0; i < temperatureDeviceCount; ++i)
@@ -420,5 +406,29 @@ void loop()
         break;
       }
     }
+  }
+
+  if (TimeDiff(lastTemperatureRead, millis()) > TEMPERATURE_INTERVAL_MS)
+  {
+    printFreeram();
+    ReadTemperatures();
+  }
+  
+  if (temperatureHistory != NULL &&
+      (TimeDiff(lastTemperatureHistoryRecord, millis()) > 1000UL * TEMPERATURE_HISTORY_INTERVAL_SEC))
+  {
+    if (temperatureHistoryFillCnt < TEMPERATURE_HISTORY_SIZE)
+      ++temperatureHistoryFillCnt;
+
+    if (temperatureHistoryOff == TEMPERATURE_HISTORY_SIZE)
+      temperatureHistoryOff = 0;
+
+    for (int i = 0; i < temperatureDeviceCount; ++i)
+    {
+      int8_t t = trunc(round(temperatures[i]));
+      temperatureHistory[i][temperatureHistoryOff] = t;
+    }
+    ++temperatureHistoryOff;
+    lastTemperatureHistoryRecord = millis();
   }
 }
