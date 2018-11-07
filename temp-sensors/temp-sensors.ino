@@ -18,20 +18,25 @@
 #define MYGW 10, 10, 0, 1
 #define LISTENPORT 80
 #define MAX_HEADER_SIZE 80
+#define ONE_WIRE_BUS 3
 // EDIT DebugMacros to set SERIAL_SPEED and enable/disable DPRINT_SERIAL
 
 //
 //==============================================================================
 
-char *tempDescription[][2] = {
-    {"28b5742407000084", "external"},
-    {"2833bf3a050000ec", "bedroom"},
-    {"28cc5d3a050000e3", "bathroom"},
-    {"288aef140500008d", "lab"}};
+#include <Arduino.h>
+
+#define TEMPERATURE_HISTORY_INTERVAL_MS 10000
+unsigned long lastTemperatureHistoryRecord;
+uint8_t temperatureHistoryFillCnt = 0;
+#define TEMPERATURE_HISTORY_FREERAM_THRESHOLD 200
+uint8_t TEMPERATURE_HISTORY_SIZE = 0;
+
+#define TEMPERATURE_INTERVAL_MS 5000
+unsigned long lastTemperatureRead;
 
 //-------------------------
 
-#include <Arduino.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <mywifikey.h>
@@ -44,29 +49,22 @@ char *tempDescription[][2] = {
 #include <Util.h>
 using namespace SearchAThing::Arduino;
 
-// header generted from debug-html files using gen-h script util
-/*const char index_html[] PROGMEM = {
-
-};
-
-const char app_js[] PROGMEM = {
-#include "app.js.h"
-};*/
-
 String header;
 EthernetServer server = EthernetServer(LISTENPORT);
 
-#define TEMPERATURE_INTERVAL_MS 5000
 #define TEMPERATURE_ADDRESS_BYTES 8
-#define ONE_WIRE_BUS 3
 
 OneWire tempOneWire(ONE_WIRE_BUS);
 DallasTemperature DS18B20(&tempOneWire);
 
 int temperatureDeviceCount = 0;
-float *temperatures = NULL;
+float *temperatures = NULL;    // current temp
 DeviceAddress *tempDevAddress; // DeviceAddress defined as uint8_t[8]
 char **tempDevHexAddress;
+
+// stored as signed int8 ( ie. float rounded to int8 )
+int8_t **temperatureHistory = NULL;
+uint8_t temperatureHistoryOff = 0;
 
 void printFreeram()
 {
@@ -80,6 +78,8 @@ void printFreeram()
 void setup()
 {
   DPrintln(F("STARTUP"));
+
+  lastTemperatureRead = lastTemperatureHistoryRecord = millis();
 
   printFreeram();
 
@@ -147,11 +147,28 @@ void SetupTemperatureDevices()
 
       DS18B20.setResolution(12);
     }
+
+    printFreeram();
+    auto freeram = FreeMemorySum();
+    TEMPERATURE_HISTORY_SIZE = (freeram - TEMPERATURE_HISTORY_FREERAM_THRESHOLD) / temperatureDeviceCount;
+
+    auto required_size = sizeof(int8_t) * temperatureDeviceCount * TEMPERATURE_HISTORY_SIZE;
+
+    temperatureHistory = (int8_t **)malloc(sizeof(int8_t *) * temperatureDeviceCount);
+
+    DPrint(F("temperature history size: "));
+    DPrint(TEMPERATURE_HISTORY_SIZE);
+    DPrint(F(" = "));
+    DPrint(TEMPERATURE_HISTORY_SIZE * (TEMPERATURE_HISTORY_INTERVAL_MS / 1000) / 60 / 60);
+    DPrintln(F(" hours"));
+    for (int i = 0; i < temperatureDeviceCount; ++i)
+    {
+      temperatureHistory[i] = (int8_t *)malloc(sizeof(int8_t) * TEMPERATURE_HISTORY_SIZE);
+    }
+    printFreeram();
   }
   ReadTemperatures();
 }
-
-unsigned long lastTemperatureRead;
 
 //
 // TEMPERATURE READ
@@ -168,20 +185,8 @@ void ReadTemperatures()
     DPrintln(temp, 4);
     temperatures[i] = temp;
   }
-  lastTemperatureRead = millis();
-}
 
-const char *getTempDescription(const char *addr)
-{
-  auto k = sizeof(tempDescription) / (2 * sizeof(char *));
-  for (int i = 0; i < k; ++i)
-  {
-    if (strcmp(tempDescription[i][0], addr) == 0)
-    {
-      return tempDescription[i][1];
-    }
-  }
-  return "not defined";
+  lastTemperatureRead = millis();
 }
 
 #define CCTYPE_HTML 0
@@ -257,7 +262,7 @@ void loop()
         {
           clientOk(client, CCTYPE_JSON);
 
-          client.print("{\"tempdevices\":[");
+          client.print(F("{\"tempdevices\":["));
           for (int i = 0; i < temperatureDeviceCount; ++i)
           {
             client.print('"');
@@ -305,16 +310,62 @@ void loop()
           client.stop();
           break;
         }
+
+        //--------------------------
+        // /temphistory
+        //--------------------------
+        q = String("GET /temphistory");
+        if (header.indexOf(q) >= 0)
+        {
+          clientOk(client, CCTYPE_JSON);
+
+          client.print('[');
+          for (int i = 0; i < temperatureDeviceCount; ++i)
+          {
+            client.print(F("{\""));
+            client.print(tempDevHexAddress[i]);
+            client.print(F("\":["));
+            auto j = temperatureHistoryFillCnt == TEMPERATURE_HISTORY_SIZE ? temperatureHistoryOff : 0;
+            auto size = min(temperatureHistoryFillCnt, TEMPERATURE_HISTORY_SIZE);
+            for (int k = 0; k < size; ++k)
+            {
+              if (j == TEMPERATURE_HISTORY_SIZE)
+                j = 0;
+              client.print(temperatureHistory[i][j++]);
+              if (k < size - 1)
+                client.print(',');
+            }
+            client.print(F("]}"));
+            if (i != temperatureDeviceCount - 1)
+              client.print(',');
+          }
+          client.print(']');
+
+          client.stop();
+          break;
+        }
       }
 
       //--------------------------
-      // /freeram
-      //--------------------------      
-      if (header.indexOf("GET /freeram") >= 0)
+      // /info
+      //--------------------------
+      if (header.indexOf("GET /info") >= 0)
       {
-        clientOk(client, CCTYPE_TEXT);
+        clientOk(client, CCTYPE_JSON);
 
-        client.print((long)FreeMemorySum());                
+        client.print('{');
+        
+        client.print(F("\"freeram\":"));
+        client.print((long)FreeMemorySum());
+        
+        client.print(F(", \"history_size\":"));
+        client.print(TEMPERATURE_HISTORY_SIZE);
+
+        client.print(F(", \"history_interval_ms\":"));
+        client.print(TEMPERATURE_HISTORY_INTERVAL_MS);
+
+        client.print('}');
+
         client.stop();
         break;
       }
@@ -354,10 +405,35 @@ void loop()
       }
     }
   }
-  else if (TimeDiff(lastTemperatureRead, millis()) > TEMPERATURE_INTERVAL_MS)
+  else
   {
-    printFreeram();
+    if (TimeDiff(lastTemperatureRead, millis()) > TEMPERATURE_INTERVAL_MS)
+    {
+      printFreeram();
+      ReadTemperatures();
+    }
+    if (temperatureHistory != NULL &&
+        (TimeDiff(lastTemperatureHistoryRecord, millis()) > TEMPERATURE_HISTORY_INTERVAL_MS))
+    {
+      if (temperatureHistoryFillCnt < TEMPERATURE_HISTORY_SIZE)
+        ++temperatureHistoryFillCnt;
 
-    ReadTemperatures();
+      if (temperatureHistoryOff == TEMPERATURE_HISTORY_SIZE)
+        temperatureHistoryOff = 0;
+
+      for (int i = 0; i < temperatureDeviceCount; ++i)
+      {
+        int8_t t = trunc(round(temperatures[i]));
+        temperatureHistory[i][temperatureHistoryOff] = t;
+        DPrint("saved temp ");
+        DPrint(t);
+        DPrint(" i=");
+        DPrint(i);
+        DPrint(" off = ");
+        DPrintln(temperatureHistoryOff);
+      }
+      ++temperatureHistoryOff;
+      lastTemperatureHistoryRecord = millis();
+    }
   }
 }
