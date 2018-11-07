@@ -421,13 +421,7 @@ void loop()
       for (int i = 0; i < temperatureDeviceCount; ++i)
       {
         int8_t t = trunc(round(temperatures[i]));
-        temperatureHistory[i][temperatureHistoryOff] = t;
-        DPrint("saved temp ");
-        DPrint(t);
-        DPrint(" i=");
-        DPrint(i);
-        DPrint(" off = ");
-        DPrintln(temperatureHistoryOff);
+        temperatureHistory[i][temperatureHistoryOff] = t;        
       }
       ++temperatureHistoryOff;
       lastTemperatureHistoryRecord = millis();
