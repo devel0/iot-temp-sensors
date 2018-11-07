@@ -26,7 +26,7 @@
 
 #include <Arduino.h>
 
-#define TEMPERATURE_HISTORY_INTERVAL_MS 10000
+#define TEMPERATURE_HISTORY_INTERVAL_SEC 10
 unsigned long lastTemperatureHistoryRecord;
 uint8_t temperatureHistoryFillCnt = 0;
 #define TEMPERATURE_HISTORY_FREERAM_THRESHOLD 200
@@ -159,7 +159,7 @@ void SetupTemperatureDevices()
     DPrint(F("temperature history size: "));
     DPrint(TEMPERATURE_HISTORY_SIZE);
     DPrint(F(" = "));
-    DPrint(TEMPERATURE_HISTORY_SIZE * (TEMPERATURE_HISTORY_INTERVAL_MS / 1000) / 60 / 60);
+    DPrint(TEMPERATURE_HISTORY_SIZE * (TEMPERATURE_HISTORY_INTERVAL_SEC) / 60 / 60);
     DPrintln(F(" hours"));
     for (int i = 0; i < temperatureDeviceCount; ++i)
     {
@@ -234,13 +234,12 @@ void loop()
 
     while ((size = client.available()) > 0)
     {
-      bool foundcmd = false;
-
       header = "";
 
       for (int i = 0; i < min(MAX_HEADER_SIZE, size); ++i)
       {
         char c = (char)client.read();
+        DPrintln(c);
 
         if (c == '\r')
         {
@@ -249,101 +248,99 @@ void loop()
         header.concat(c);
       }
 
-      foundcmd = false;
+      DPrint("Header [");
+      DPrint(header.c_str());
+      DPrintln(']');
 
-      if (temperatureDeviceCount > 0)
+      //--------------------------
+      // /tempdevices
+      //--------------------------      
+      if (header.indexOf("GET /tempdevices") >= 0)
       {
+        clientOk(client, CCTYPE_JSON);
 
-        //--------------------------
-        // /tempdevices
-        //--------------------------
-        String q = String("GET /tempdevices");
-        if (header.indexOf(q) >= 0)
+        client.print(F("{\"tempdevices\":["));
+        for (int i = 0; i < temperatureDeviceCount; ++i)
         {
-          clientOk(client, CCTYPE_JSON);
+          client.print('"');
+          client.print(tempDevHexAddress[i]);
+          client.print('"');
 
-          client.print(F("{\"tempdevices\":["));
+          if (i != temperatureDeviceCount - 1)
+            client.print(',');
+        }
+        client.print("]}");
+
+        client.stop();
+        break;
+      }
+
+      //--------------------------
+      // /temp/{id}
+      //--------------------------      
+      if (header.indexOf("GET /temp/") >= 0)
+      {
+        auto hbasesize = 10; // "GET /temp/"
+        bool found = false;
+        DPrintln("XXX");
+        if (header.length() - hbasesize >= 8)
+        {
+          DPrintln("AZZZ");
+          clientOk(client, CCTYPE_TEXT);
+
           for (int i = 0; i < temperatureDeviceCount; ++i)
           {
-            client.print('"');
-            client.print(tempDevHexAddress[i]);
-            client.print('"');
-
-            if (i != temperatureDeviceCount - 1)
-              client.print(',');
-          }
-          client.print("]}");
-
-          client.stop();
-          break;
-        }
-
-        //--------------------------
-        // /temp/{id}
-        //--------------------------
-        q = String("GET /temp/");
-        if (header.indexOf(q) >= 0)
-        {
-          bool found = false;
-          if (header.length() - q.length() >= 8)
-          {
-            clientOk(client, CCTYPE_TEXT);
-
-            for (int i = 0; i < temperatureDeviceCount; ++i)
+            if (strncmp(header.c_str() + hbasesize, tempDevHexAddress[i],
+                        2 * TEMPERATURE_ADDRESS_BYTES) == 0)
             {
-              if (strncmp(header.c_str() + q.length(), tempDevHexAddress[i],
-                          2 * TEMPERATURE_ADDRESS_BYTES) == 0)
-              {
-                char tmp[20];
-                FloatToString(tmp, temperatures[i], 6);
+              char tmp[20];
+              FloatToString(tmp, temperatures[i], 6);
 
-                client.print(tmp);
+              client.print(tmp);
 
-                found = true;
-                break;
-              }
+              found = true;
+              break;
             }
           }
-          if (!found)
-            client.print(F("not found"));
-
-          client.stop();
-          break;
         }
+        if (!found)
+          client.print(F("not found"));
 
-        //--------------------------
-        // /temphistory
-        //--------------------------
-        q = String("GET /temphistory");
-        if (header.indexOf(q) >= 0)
+        client.stop();
+        break;
+      }
+
+      //--------------------------
+      // /temphistory
+      //--------------------------      
+      if (header.indexOf("GET /temphistory") >= 0)
+      {
+        clientOk(client, CCTYPE_JSON);
+
+        client.print('[');
+        for (int i = 0; i < temperatureDeviceCount; ++i)
         {
-          clientOk(client, CCTYPE_JSON);
-
-          client.print('[');
-          for (int i = 0; i < temperatureDeviceCount; ++i)
+          client.print(F("{\""));
+          client.print(tempDevHexAddress[i]);
+          client.print(F("\":["));
+          auto j = temperatureHistoryFillCnt == TEMPERATURE_HISTORY_SIZE ? temperatureHistoryOff : 0;
+          auto size = min(temperatureHistoryFillCnt, TEMPERATURE_HISTORY_SIZE);
+          for (int k = 0; k < size; ++k)
           {
-            client.print(F("{\""));
-            client.print(tempDevHexAddress[i]);
-            client.print(F("\":["));
-            auto j = temperatureHistoryFillCnt == TEMPERATURE_HISTORY_SIZE ? temperatureHistoryOff : 0;
-            auto size = min(temperatureHistoryFillCnt, TEMPERATURE_HISTORY_SIZE);
-            for (int k = 0; k < size; ++k)
-            {
-              if (j == TEMPERATURE_HISTORY_SIZE)
-                j = 0;
-              client.print(temperatureHistory[i][j++]);
-              if (k < size - 1)
-                client.print(',');
-            }
-            client.print(F("]}"));
-            if (i != temperatureDeviceCount - 1)
+            if (j == TEMPERATURE_HISTORY_SIZE)
+              j = 0;
+            client.print(temperatureHistory[i][j++]);
+            if (k < size - 1)
               client.print(',');
           }
-          client.print(']');
-
-          client.stop();
-          break;
+          client.print(F("]}"));
+          if (i != temperatureDeviceCount - 1)
+            client.print(',');
         }
+        client.print(']');
+
+        client.stop();
+        break;
       }
 
       //--------------------------
@@ -354,15 +351,15 @@ void loop()
         clientOk(client, CCTYPE_JSON);
 
         client.print('{');
-        
+
         client.print(F("\"freeram\":"));
         client.print((long)FreeMemorySum());
-        
+
         client.print(F(", \"history_size\":"));
         client.print(TEMPERATURE_HISTORY_SIZE);
 
-        client.print(F(", \"history_interval_ms\":"));
-        client.print(TEMPERATURE_HISTORY_INTERVAL_MS);
+        client.print(F(", \"history_interval_sec\":"));
+        client.print(TEMPERATURE_HISTORY_INTERVAL_SEC);
 
         client.print('}');
 
@@ -413,7 +410,7 @@ void loop()
       ReadTemperatures();
     }
     if (temperatureHistory != NULL &&
-        (TimeDiff(lastTemperatureHistoryRecord, millis()) > TEMPERATURE_HISTORY_INTERVAL_MS))
+        (TimeDiff(lastTemperatureHistoryRecord, millis()) > 1000UL * TEMPERATURE_HISTORY_INTERVAL_SEC))
     {
       if (temperatureHistoryFillCnt < TEMPERATURE_HISTORY_SIZE)
         ++temperatureHistoryFillCnt;
