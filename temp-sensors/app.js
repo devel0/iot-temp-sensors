@@ -11,7 +11,8 @@ var sensorDesc = [{
     description: "test"
 }];
 
-// set to false in production
+// automatic replaced to debug = false during compilation
+// this is used to debug page index.htm locally
 var debug = true;
 
 //==============================================================================
@@ -45,10 +46,12 @@ function reloadall() {
 async function myfn() {
     // retrieve temperature devices and populate table
 
+    $('.j-spin').removeClass('collapse');
     const res = await $.ajax({
         url: baseurl + '/tempdevices',
         type: 'GET'
     });
+    $('.j-spin').addClass('collapse');
 
     var h = "";
 
@@ -84,6 +87,12 @@ async function myfn() {
     }
 
     $('#tbody-temp')[0].innerHTML = h;
+
+    const res2 = await $.ajax({
+        url: baseurl + '/freeram',
+        type: 'GET'
+    });
+    $('#freeram')[0].innerHTML = res2;
 }
 
 myfn();

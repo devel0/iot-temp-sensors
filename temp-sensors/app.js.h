@@ -4,7 +4,7 @@ id: \"28af8123070000e2\",\
 description: \"test\"\
 }];\
 \
-var debug = true;\
+var debug = false;\
 \
 \
 var baseurl = '';\
@@ -35,10 +35,12 @@ reloadTemp(v);\
 \
 async function myfn() {\
 \
+$('.j-spin').removeClass('collapse');\
 const res = await $.ajax({\
 url: baseurl + '/tempdevices',\
 type: 'GET'\
 });\
+$('.j-spin').addClass('collapse');\
 \
 var h = \"\";\
 \
@@ -70,6 +72,12 @@ h += \"</tr>\";\
 }\
 \
 $('#tbody-temp')[0].innerHTML = h;\
+\
+const res2 = await $.ajax({\
+url: baseurl + '/freeram',\
+type: 'GET'\
+});\
+$('#freeram')[0].innerHTML = res2;\
 }\
 \
 myfn();\

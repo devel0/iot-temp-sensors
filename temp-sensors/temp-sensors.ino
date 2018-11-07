@@ -308,6 +308,18 @@ void loop()
       }
 
       //--------------------------
+      // /freeram
+      //--------------------------      
+      if (header.indexOf("GET /freeram") >= 0)
+      {
+        clientOk(client, CCTYPE_TEXT);
+
+        client.print((long)FreeMemorySum());                
+        client.stop();
+        break;
+      }
+
+      //--------------------------
       // /app.js
       //--------------------------
       if (header.indexOf("GET /app.js") >= 0)
@@ -318,10 +330,10 @@ void loop()
 
         client.print(
 #include "app.js.h"
-        );    
+        );
 
         client.stop();
-        break;    
+        break;
       }
 
       //--------------------------

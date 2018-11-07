@@ -48,11 +48,9 @@ crossorigin=\"anonymous\">\
 <h3 class=\"mt-3\">Api</h3>\
 <div class=\"row\">\
 <div class=\"col\">\
-<code>/temp/address</code> ( read temperature of sensor by given 8 hex address )<br /></div>\
-</div>\
-<div class=\"row mt-2\">\
-<div class=\"col\">\
-<code id='freeram'></code><br />\
+<code>/temp/address</code> ( read temperature of sensor by given 8 hex address )<br />\
+<code>/tempdevices</code> ( return a json list of temperature devices )<br />\
+Freeram : <code id='freeram'></code>\
 </div>\
 </div>\
 </div>\
@@ -64,5 +62,4 @@ crossorigin=\"anonymous\"></script>\
 <script src=\"app.js\"></script>\
 </body>\
 \
-</html>\
-")
+</html>")
