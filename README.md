@@ -10,7 +10,8 @@ atmega328 + onewire ds18b20 + ethernet enc28j60
 - [config](#config)
 - [debugging](#debugging)
 - [api](#api)
-- [sketch size](#sketch-size)  
+- [sketch size](#sketch-size)
+- [security considerations](#security-considerations)
 
 ## features
 
@@ -58,3 +59,8 @@ atmega328 + onewire ds18b20 + ethernet enc28j60
 Sketch uses 24534 bytes (74%) of program storage space. Maximum is 32768 bytes.
 Global variables use 1169 bytes (57%) of dynamic memory, leaving 879 bytes for local variables. Maximum is 2048 bytes.
 ```
+
+## security considerations
+
+- see [prerequisite considerations]()
+- [ENABLE_CORS](https://github.com/devel0/iot-temp-sensors/blob/8baeae070887b1b4300d076d6dee94ce3c4f6a09/temp-sensors/temp-sensors.ino#L12) even disabled not imply any check at server(atmega)-side so effectively a non-browser request can execute request from any crossing domain; can mitigate wrapping with [nginx](https://enable-cors.org/server_nginx.html)
