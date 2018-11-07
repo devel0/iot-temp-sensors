@@ -89,10 +89,10 @@ async function myfn() {
     $('#tbody-temp')[0].innerHTML = h;
 
     const res2 = await $.ajax({
-        url: baseurl + '/freeram',
+        url: baseurl + '/info',
         type: 'GET'
     });
-    $('#freeram')[0].innerHTML = res2;
+    $('#info')[0].innerHTML = JSON.stringify(res2, null,2);
 }
 
 myfn();
