@@ -15,6 +15,7 @@ atmega328 + onewire ds18b20 + ethernet enc28j60
 
 - easy customization through direct index.htm and app.js editing and debugging locally
 - automatic compilatio of index.htm.h and app.js.h to be included as flash string
+- [alloc automatically](https://github.com/devel0/iot-temp-sensors/blob/747eedead33772415a47ea5b0cbd67a9d4185bc4/temp-sensors/temp-sensors.ino#L152-L167) a backlog of temperature recording based upon available ram
 
 ## prerequisites
 
