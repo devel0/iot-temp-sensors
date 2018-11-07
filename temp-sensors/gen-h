@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# this script will invoked as prebuild ( see .vscode/arduino.json )
+
+echo "================================================"
+echo "PREPROCESSING index.htm and app.js"
+echo "================================================"
+
+exdir=$(dirname `readlink -f "$0"`)
+
+function removetrailingnewlines
+{
+    #sed -e :a -e '/^\n*$/{$d;N;};/\n$/ba'
+    cat
+}
+
+function removeleadingspaces
+{
+    sed 's/^\s*//g'
+}
+
+function removetrailingspaces
+{
+    sed 's/\s*$//g'
+}
+
+function processnewline
+{
+    sed -z 's/\n/\\\n/g'
+}
+
+function removejscomment
+{
+    grep -v "^\s*//"
+}
+
+# generate html header flash string
+# - removing leading and trailing spaces
+# - escaping double quotation
+# - removing newlines
+dst="$exdir/index.htm.h"
+echo '/* GENERATED FILE BY gen-h UTIL - DO NOT EDIT THIS */' > "$dst"
+echo -n 'F("' >> "$dst"
+cat "$exdir/index.htm" | removetrailingnewlines | removeleadingspaces | removetrailingspaces | sed 's/\"/\\\"/g' | processnewline >> "$dst"
+echo '")' >> "$dst"
+
+# generate js header flash string
+# - removing comments
+# - removing leading and trailing spaces
+# - escaping double quotation taking care to escape already escaped
+# - removing newlines
+dst="$exdir/app.js.h"
+echo '/* GENERATED FILE BY gen-h UTIL - DO NOT EDIT THIS */' > "$dst"
+echo -n 'F("' > "$dst"
+cat "$exdir/app.js" | removetrailingnewlines | removejscomment | removeleadingspaces | removetrailingspaces | sed 's/\\\"/\\\\\"/g' | sed 's/\"/\\\"/g' | processnewline >> "$dst"
+echo '")' >> "$dst"
