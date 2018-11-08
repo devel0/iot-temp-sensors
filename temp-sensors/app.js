@@ -74,12 +74,9 @@ async function reloadall() {
         valcnt = data[id].length;
 
         dts = [];
-        $.each(data[id], function (idx, val) {
-            console.log('valcnt: ' + valcnt + ' idx: ' + idx);
-            secbefore = (valcnt - idx - 1) * history_interval_sec;
-            console.log('secbefore: ' + secbefore);
-            tt = moment(dtnow).subtract(secbefore, 'seconds');
-            console.log(tt.format());
+        $.each(data[id], function (idx, val) {            
+            secbefore = (valcnt - idx - 1) * history_interval_sec;            
+            tt = moment(dtnow).subtract(secbefore, 'seconds');            
             dts.push({
                 t: tt,
                 y: val
@@ -104,6 +101,11 @@ async function reloadall() {
             scales: {
                 xAxes: [{
                     type: 'time',
+                    time: {
+                        displayFormats: {
+                            'hour': 'HH:mm'
+                        }
+                    },                    
                     position: 'bottom'
                 }]
             }
