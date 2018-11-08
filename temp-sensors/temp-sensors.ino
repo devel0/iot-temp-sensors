@@ -11,6 +11,10 @@
 //
 #define ENABLE_CORS 1
 
+// choose one of follow two interface
+#define USE_ENC28J60
+//#define USE_W5500
+
 #define MACADDRESS 0x33, 0xcf, 0x8d, 0x9f, 0x5b, 0x89
 #define MYIPADDR 10, 10, 4, 111
 #define MYIPMASK 255, 255, 255, 0
@@ -47,9 +51,15 @@ unsigned long lastTemperatureRead;
 #include <DallasTemperature.h>
 #include <mywifikey.h>
 
+#ifdef USE_ENC28J60
 #include <UIPEthernet.h>
 // edit UIPEthernet/utility/uipethernet-conf.h to customize
 // - define UIP_CONF_UDP=0 to reduce flash size
+#endif
+
+#ifdef USE_W5500
+#include <Ethernet.h>
+#endif
 
 #include <DPrint.h>
 #include <Util.h>
@@ -83,6 +93,13 @@ void printFreeram()
 //
 void setup()
 {
+  pinMode(4, OUTPUT);
+  digitalWrite(4, HIGH);
+
+  pinMode(10, OUTPUT);
+  digitalWrite(10, HIGH);
+  delay(1);
+
   DPrintln(F("STARTUP"));
 
   lastTemperatureRead = lastTemperatureHistoryRecord = millis();
