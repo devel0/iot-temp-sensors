@@ -21,7 +21,7 @@ atmega328 + onewire ds18b20 + ethernet enc28j60/w5500
 
 ## prerequisites
 
-- [iot-atmega328p-enc28j60](https://github.com/devel0/iot-atmega328p-enc28j60/blob/master/README.md)
+- [iot-atmega328p-eth](https://github.com/devel0/iot-atmega328p-eth)
 
 ## config
 
@@ -73,5 +73,5 @@ Global variables use 702 bytes (34%) of dynamic memory, leaving 1346 bytes for l
 
 ## security considerations
 
-- see [prerequisite considerations](https://github.com/devel0/iot-atmega328p-enc28j60/tree/4a4fc753572a2c6fd427d38278091163c69b46cd#security-considerations)
+- see [prerequisite considerations](https://github.com/devel0/iot-atmega328p-eth/tree/4a4fc753572a2c6fd427d38278091163c69b46cd#security-considerations)
 - [ENABLE_CORS](https://github.com/devel0/iot-temp-sensors/blob/8baeae070887b1b4300d076d6dee94ce3c4f6a09/temp-sensors/temp-sensors.ino#L12) even disabled not imply any check at server(atmega)-side so effectively a non-browser request can execute request from any crossing domain; can mitigate wrapping with [nginx](https://enable-cors.org/server_nginx.html)
