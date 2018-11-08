@@ -224,8 +224,9 @@ void clientOk(EthernetClient &client, int type)
 
 #if ENABLE_CORS == 1
   client.println("Access-Control-Allow-Origin: *");
-  client.println();
 #endif
+
+  client.println();
 }
 
 //
@@ -256,8 +257,9 @@ void loop()
       //--------------------------
       // /tempdevices
       //--------------------------
-      if (header.indexOf("GET /tempdevices") >= 0)
+      if (strncmp(header.c_str(), "GET /tempdevices", 16) == 0)
       {
+        DPrintln("temp devices");
         clientOk(client, CCTYPE_JSON);
 
         client.print(F("{\"tempdevices\":["));
@@ -279,7 +281,7 @@ void loop()
       //--------------------------
       // /temp/{id}
       //--------------------------
-      if (header.indexOf("GET /temp/") >= 0)
+      if (strncmp(header.c_str(), "GET /temp/", 10) == 0)
       {
         auto hbasesize = 10; // "GET /temp/"
         bool found = false;
@@ -313,7 +315,7 @@ void loop()
       //--------------------------
       // /temphistory
       //--------------------------
-      if (header.indexOf("GET /temphistory") >= 0)
+      if (strncmp(header.c_str(), "GET /temphistory", 16) == 0)
       {
         clientOk(client, CCTYPE_JSON);
 
@@ -351,7 +353,7 @@ void loop()
       //--------------------------
       // /info
       //--------------------------
-      if (header.indexOf("GET /info") >= 0)
+      if (strncmp(header.c_str(), "GET /info", 9) == 0)
       {
         clientOk(client, CCTYPE_JSON);
 
@@ -375,7 +377,7 @@ void loop()
       //--------------------------
       // /app.js
       //--------------------------
-      if (header.indexOf("GET /app.js") >= 0)
+      if (strncmp(header.c_str(), "GET /app.js", 11) == 0)
       {
         DPrintln(F("serving app.js"));
 
@@ -392,7 +394,7 @@ void loop()
       //--------------------------
       // /
       //--------------------------
-      if (header.indexOf("GET / ") >= 0 || header.indexOf("GET /index.htm") >= 0)
+      if (strncmp(header.c_str(), "GET / ", 6) == 0 || strncmp(header.c_str(), "GET /index.htm", 14) == 0)
       {
         DPrintln(F("serving index.htm"));
 
@@ -413,7 +415,7 @@ void loop()
     printFreeram();
     ReadTemperatures();
   }
-  
+
   if (temperatureHistory != NULL &&
       (TimeDiff(lastTemperatureHistoryRecord, millis()) > 1000UL * TEMPERATURE_HISTORY_INTERVAL_SEC))
   {
