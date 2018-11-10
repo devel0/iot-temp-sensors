@@ -86,7 +86,8 @@ async function reloadall() {
         dss.push({
             borderColor: color,
             label: desc,
-            data: dts
+            data: dts,
+            pointRadius: 0
         });
 
         ++i;
