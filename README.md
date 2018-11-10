@@ -1,6 +1,6 @@
 # iot-temp-sensors
 
-atmega328 + onewire ds18b20 + ethernet enc28j60
+atmega328 + onewire ds18b20 + ethernet enc28j60/w5500
 
 ![img](https://github.com/devel0/iot-temp-sensors-sd-card/blob/master/doc/20181106_143657x.jpg)
 ![img](doc/Selection_003.png)
@@ -21,7 +21,7 @@ atmega328 + onewire ds18b20 + ethernet enc28j60
 
 ## prerequisites
 
-- [iot-atmega328p-enc28j60](https://github.com/devel0/iot-atmega328p-enc28j60/blob/master/README.md)
+- [iot-atmega328p-eth](https://github.com/devel0/iot-atmega328p-eth)
 
 ## config
 
@@ -53,14 +53,25 @@ atmega328 + onewire ds18b20 + ethernet enc28j60
 
 ## sketch size
 
-- serial debug included, `UIP_CONF_UDP=0` in `UIPEthernet/utility/uipethernet-conf.h`
+*serial debug included*
+
+**ENC28J60 (udp disabled)**
+
+- `UIP_CONF_UDP=0` in `UIPEthernet/utility/uipethernet-conf.h`
 
 ```
-Sketch uses 24534 bytes (74%) of program storage space. Maximum is 32768 bytes.
-Global variables use 1169 bytes (57%) of dynamic memory, leaving 879 bytes for local variables. Maximum is 2048 bytes.
+Sketch uses 28070 bytes (85%) of program storage space. Maximum is 32768 bytes.
+Global variables use 1216 bytes (59%) of dynamic memory, leaving 832 bytes for local variables. Maximum is 2048 bytes.
+```
+
+**W5500**
+
+```
+Sketch uses 27076 bytes (82%) of program storage space. Maximum is 32768 bytes.
+Global variables use 702 bytes (34%) of dynamic memory, leaving 1346 bytes for local variables. Maximum is 2048 bytes.
 ```
 
 ## security considerations
 
-- see [prerequisite considerations](https://github.com/devel0/iot-atmega328p-enc28j60/tree/4a4fc753572a2c6fd427d38278091163c69b46cd#security-considerations)
+- see [prerequisite considerations](https://github.com/devel0/iot-atmega328p-eth/tree/4a4fc753572a2c6fd427d38278091163c69b46cd#security-considerations)
 - [ENABLE_CORS](https://github.com/devel0/iot-temp-sensors/blob/8baeae070887b1b4300d076d6dee94ce3c4f6a09/temp-sensors/temp-sensors.ino#L12) even disabled not imply any check at server(atmega)-side so effectively a non-browser request can execute request from any crossing domain; can mitigate wrapping with [nginx](https://enable-cors.org/server_nginx.html)
