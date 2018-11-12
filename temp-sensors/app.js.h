@@ -16,12 +16,23 @@ var history_interval_sec = 10;\
 var baseurl = '';\
 if (debug) baseurl = 'http://10.10.4.111';\
 \
-function reloadTemp(addr) {\
+async function reloadTemp(addr) {\
 $('.j-spin').removeClass('collapse');\
-$.get(baseurl + '/temp/' + addr, function (data) {\
-$('.j-spin').addClass('collapse');\
-$('#t' + addr)[0].innerText = data;\
+let finished = false;\
+let res = null;\
+while (!finished) {\
+try {\
+res = await $.ajax({\
+url: baseurl + '/temp/' + addr,\
+type: 'GET'\
 });\
+finished = true;\
+} catch (e) {\
+\
+}\
+}\
+$('.j-spin').addClass('collapse');\
+$('#t' + addr)[0].innerText = res;\
 }\
 var reload_enabled = false;\
 setInterval(autoreload, 10000);\
@@ -31,17 +42,31 @@ if (!reload_enabled) return;\
 reloadall();\
 }\
 \
+function sleep(ms) {\
+return new Promise(resolve => setTimeout(resolve, ms));\
+}\
+\
 async function reloadall() {\
-$('.tempdev').each(function (idx) {\
+$('.tempdev').each(async function (idx) {\
 let v = this.innerText;\
 console.log('addr=[' + v + ']');\
-reloadTemp(v);\
+await reloadTemp(v);\
 });\
 \
-const res = await $.ajax({\
+let finished = false;\
+\
+let res = null;\
+while (!finished) {\
+try {\
+res = await $.ajax({\
 url: baseurl + \"/temphistory\",\
 type: 'GET'\
 });\
+finished = true;\
+} catch (e) {\
+\
+}\
+}\
 \
 var colors = ['orange', 'yellow', 'green', 'blue', 'violet', 'black', 'red'];\
 var ctx = document.getElementById(\"myChart\").getContext('2d');\
@@ -64,11 +89,8 @@ valcnt = data[id].length;\
 \
 dts = [];\
 $.each(data[id], function (idx, val) {\
-console.log('valcnt: ' + valcnt + ' idx: ' + idx);\
 secbefore = (valcnt - idx - 1) * history_interval_sec;\
-console.log('secbefore: ' + secbefore);\
 tt = moment(dtnow).subtract(secbefore, 'seconds');\
-console.log(tt.format());\
 dts.push({\
 t: tt,\
 y: val\
@@ -78,7 +100,8 @@ y: val\
 dss.push({\
 borderColor: color,\
 label: desc,\
-data: dts\
+data: dts,\
+pointRadius: 0\
 });\
 \
 ++i;\
@@ -93,6 +116,11 @@ options: {\
 scales: {\
 xAxes: [{\
 type: 'time',\
+time: {\
+displayFormats: {\
+'hour': 'HH:mm'\
+}\
+},\
 position: 'bottom'\
 }]\
 }\

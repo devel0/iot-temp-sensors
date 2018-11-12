@@ -40,7 +40,7 @@
 unsigned long lastTemperatureHistoryRecord;
 uint8_t temperatureHistoryFillCnt = 0;
 #define TEMPERATURE_HISTORY_FREERAM_THRESHOLD 200
-uint8_t TEMPERATURE_HISTORY_SIZE = 0;
+uint16_t TEMPERATURE_HISTORY_SIZE = 0;
 
 #define TEMPERATURE_INTERVAL_MS 5000
 unsigned long lastTemperatureRead;
@@ -65,7 +65,7 @@ unsigned long lastTemperatureRead;
 #include <Util.h>
 using namespace SearchAThing::Arduino;
 
-String header;
+unsigned char *header;
 EthernetServer server = EthernetServer(LISTENPORT);
 
 #define TEMPERATURE_ADDRESS_BYTES 8
@@ -80,12 +80,12 @@ char **tempDevHexAddress;
 
 // stored as signed int8 ( ie. float rounded to int8 )
 int8_t **temperatureHistory = NULL;
-uint8_t temperatureHistoryOff = 0;
+uint16_t temperatureHistoryOff = 0;
 
 void printFreeram()
 {
-  DPrint(F("Freeram : "));
-  DPrintln((long)FreeMemorySum());
+  DPrintF(F("Freeram : "));
+  DPrintLongln(FreeMemorySum());
 }
 
 //
@@ -100,13 +100,14 @@ void setup()
   digitalWrite(10, HIGH);
   delay(1);
 
-  DPrintln(F("STARTUP"));
+  header = (unsigned char *)malloc(MAX_HEADER_SIZE + 1);
+
+  DPrintFln(F("STARTUP"));
 
   lastTemperatureRead = lastTemperatureHistoryRecord = millis();
 
   printFreeram();
 
-  header.reserve(MAX_HEADER_SIZE);
   SetupTemperatureDevices();
 
   uint8_t mac[6] = {MACADDRESS};
@@ -121,12 +122,12 @@ void setup()
   // static
   Ethernet.begin(mac, myIP, myDNS, myGW, myMASK);
 
-  DPrint("my ip : ");
+  DPrintF(F("my ip : "));
   for (int i = 0; i < 4; ++i)
   {
-    DPrint(Ethernet.localIP()[i]);
+    DPrintInt16(Ethernet.localIP()[i]);
     if (i != 3)
-      DPrint('.');
+      DPrintChar('.');
   }
   DPrintln();
 
@@ -140,8 +141,8 @@ void SetupTemperatureDevices()
 {
   DS18B20.begin();
   temperatureDeviceCount = DS18B20.getDeviceCount();
-  DPrint(F("temperature device count = "));
-  DPrintIntln(temperatureDeviceCount);
+  DPrintF(F("temperature device count = "));
+  DPrintInt16ln(temperatureDeviceCount);
   if (temperatureDeviceCount > 0)
   {
     temperatures = new float[temperatureDeviceCount];
@@ -162,10 +163,10 @@ void SetupTemperatureDevices()
               tempDevAddress[i][6],
               tempDevAddress[i][7]);
 
-      DPrint("sensor [");
-      DPrintInt(i);
-      DPrint("] address = ");
-      DPrint(tempDevHexAddress[i]);
+      DPrintF(F("sensor ["));
+      DPrintInt16(i);
+      DPrintF(F("] address = "));
+      DPrintStr(tempDevHexAddress[i]);
       DPrintln();
 
       DS18B20.setResolution(12);
@@ -179,11 +180,11 @@ void SetupTemperatureDevices()
 
     temperatureHistory = (int8_t **)malloc(sizeof(int8_t *) * temperatureDeviceCount);
 
-    DPrint(F("temperature history size: "));
-    DPrint(TEMPERATURE_HISTORY_SIZE);
-    DPrint(F(" = "));
-    DPrint((unsigned long)TEMPERATURE_HISTORY_SIZE * (TEMPERATURE_HISTORY_INTERVAL_SEC) / 60 / 60);
-    DPrintln(F(" hours"));
+    DPrintF(F("temperature history size: "));
+    DPrintUInt16(TEMPERATURE_HISTORY_SIZE);
+    DPrintF(F(" = "));
+    DPrintULong((unsigned long)TEMPERATURE_HISTORY_SIZE * (TEMPERATURE_HISTORY_INTERVAL_SEC) / 60 / 60);
+    DPrintFln(F(" hours"));
     for (int i = 0; i < temperatureDeviceCount; ++i)
     {
       temperatureHistory[i] = (int8_t *)malloc(sizeof(int8_t) * TEMPERATURE_HISTORY_SIZE);
@@ -202,10 +203,10 @@ void ReadTemperatures()
   for (int i = 0; i < temperatureDeviceCount; ++i)
   {
     auto temp = DS18B20.getTempC(tempDevAddress[i]);
-    DPrint(F("temperature sensor ["));
-    DPrintInt(i);
-    DPrint(F("] = "));
-    DPrintln(temp, 4);
+    DPrintF(F("temperature sensor ["));
+    DPrintInt16(i);
+    DPrintF(F("] = "));
+    DPrintFloatln(temp, 4);
     temperatures[i] = temp;
   }
 
@@ -258,25 +259,37 @@ void loop()
 
     while ((size = client.available()) > 0)
     {
-      header = "";
-
-      for (int i = 0; i < min(MAX_HEADER_SIZE, size); ++i)
+      header[0] = 0;
       {
-        char c = (char)client.read();
-
-        if (c == '\r')
+        int i = 0;
+        DPrintF(F("SZ:"));
+        DPrintInt16ln(size);
+        auto lim = min(MAX_HEADER_SIZE, size);
+        while (i < lim)
         {
-          break;
+          char c = (char)client.read();
+
+          if (c == '\r')
+          {
+            break;
+          }
+          header[i++] = c;
         }
-        header.concat(c);
+        header[i] = 0;
+      }
+
+      if (strlen(header) < 5 || strncmp(header, "GET /", 5) < 0)
+      {
+        client.stop();
+        break;
       }
 
       //--------------------------
       // /tempdevices
       //--------------------------
-      if (strncmp(header.c_str(), "GET /tempdevices", 16) == 0)
+      if (strncmp(header, "GET /tempdevices", 16) == 0)
       {
-        DPrintln("temp devices");
+        DPrintFln(F("temp devices"));
         clientOk(client, CCTYPE_JSON);
 
         client.print(F("{\"tempdevices\":["));
@@ -298,18 +311,18 @@ void loop()
       //--------------------------
       // /temp/{id}
       //--------------------------
-      if (strncmp(header.c_str(), "GET /temp/", 10) == 0)
+      if (strncmp(header, "GET /temp/", 10) == 0)
       {
         auto hbasesize = 10; // "GET /temp/"
         bool found = false;
 
-        if (header.length() - hbasesize >= 8)
+        if (strlen(header) - hbasesize >= 8)
         {
           clientOk(client, CCTYPE_TEXT);
 
           for (int i = 0; i < temperatureDeviceCount; ++i)
           {
-            if (strncmp(header.c_str() + hbasesize, tempDevHexAddress[i],
+            if (strncmp(header + hbasesize, tempDevHexAddress[i],
                         2 * TEMPERATURE_ADDRESS_BYTES) == 0)
             {
               char tmp[20];
@@ -332,14 +345,14 @@ void loop()
       //--------------------------
       // /temphistory
       //--------------------------
-      if (strncmp(header.c_str(), "GET /temphistory", 16) == 0)
+      if (strncmp(header, "GET /temphistory", 16) == 0)
       {
         clientOk(client, CCTYPE_JSON);
 
-        DPrint(F("temperatureHistoryFillCnt:"));
-        DPrintln(temperatureHistoryFillCnt);
-        DPrint(F("temperatureHistoryOff:"));
-        DPrintln(temperatureHistoryOff);
+        DPrintF(F("temperatureHistoryFillCnt:"));
+        DPrintInt16ln(temperatureHistoryFillCnt);
+        DPrintF(F("temperatureHistoryOff:"));
+        DPrintUInt16ln(temperatureHistoryOff);
 
         client.print('[');
         for (int i = 0; i < temperatureDeviceCount; ++i)
@@ -370,7 +383,7 @@ void loop()
       //--------------------------
       // /info
       //--------------------------
-      if (strncmp(header.c_str(), "GET /info", 9) == 0)
+      if (strncmp(header, "GET /info", 9) == 0)
       {
         clientOk(client, CCTYPE_JSON);
 
@@ -394,9 +407,9 @@ void loop()
       //--------------------------
       // /app.js
       //--------------------------
-      if (strncmp(header.c_str(), "GET /app.js", 11) == 0)
+      if (strncmp(header, "GET /app.js", 11) == 0)
       {
-        DPrintln(F("serving app.js"));
+        DPrintFln(F("serving app.js"));
 
         clientOk(client, CCTYPE_JS);
 
@@ -411,9 +424,9 @@ void loop()
       //--------------------------
       // /
       //--------------------------
-      if (strncmp(header.c_str(), "GET / ", 6) == 0 || strncmp(header.c_str(), "GET /index.htm", 14) == 0)
+      if (strncmp(header, "GET / ", 6) == 0 || strncmp(header, "GET /index.htm", 14) == 0)
       {
-        DPrintln(F("serving index.htm"));
+        DPrintFln(F("serving index.htm"));
 
         clientOk(client, CCTYPE_HTML);
 

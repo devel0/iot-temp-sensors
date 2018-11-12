@@ -27,12 +27,23 @@ var history_interval_sec = 10;
 var baseurl = '';
 if (debug) baseurl = 'http://10.10.4.111';
 
-function reloadTemp(addr) {
+async function reloadTemp(addr) {
     $('.j-spin').removeClass('collapse');
-    $.get(baseurl + '/temp/' + addr, function (data) {
-        $('.j-spin').addClass('collapse');
-        $('#t' + addr)[0].innerText = data;
-    });
+    let finished = false;
+    let res = null;
+    while (!finished) {
+        try {
+            res = await $.ajax({
+                url: baseurl + '/temp/' + addr,
+                type: 'GET'
+            });
+            finished = true;
+        } catch (e) {
+
+        }
+    }
+    $('.j-spin').addClass('collapse');
+    $('#t' + addr)[0].innerText = res;
 }
 var reload_enabled = false;
 setInterval(autoreload, 10000);
@@ -42,17 +53,31 @@ function autoreload() {
     reloadall();
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function reloadall() {
-    $('.tempdev').each(function (idx) {
+    $('.tempdev').each(async function (idx) {
         let v = this.innerText;
         console.log('addr=[' + v + ']');
-        reloadTemp(v);
+        await reloadTemp(v);
     });
 
-    const res = await $.ajax({
-        url: baseurl + "/temphistory",
-        type: 'GET'
-    });
+    let finished = false;
+
+    let res = null;
+    while (!finished) {
+        try {
+            res = await $.ajax({
+                url: baseurl + "/temphistory",
+                type: 'GET'
+            });
+            finished = true;
+        } catch (e) {
+
+        }
+    }
 
     var colors = ['orange', 'yellow', 'green', 'blue', 'violet', 'black', 'red'];
     var ctx = document.getElementById("myChart").getContext('2d');
@@ -74,9 +99,9 @@ async function reloadall() {
         valcnt = data[id].length;
 
         dts = [];
-        $.each(data[id], function (idx, val) {            
-            secbefore = (valcnt - idx - 1) * history_interval_sec;            
-            tt = moment(dtnow).subtract(secbefore, 'seconds');            
+        $.each(data[id], function (idx, val) {
+            secbefore = (valcnt - idx - 1) * history_interval_sec;
+            tt = moment(dtnow).subtract(secbefore, 'seconds');
             dts.push({
                 t: tt,
                 y: val
@@ -106,7 +131,7 @@ async function reloadall() {
                         displayFormats: {
                             'hour': 'HH:mm'
                         }
-                    },                    
+                    },
                     position: 'bottom'
                 }]
             }
