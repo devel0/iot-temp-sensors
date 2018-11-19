@@ -276,7 +276,9 @@ void loop()
           header[i++] = c;
         }
         header[i] = 0;
-      }
+      }    
+      while (client.available()) client.read(); // consume remaining header  
+      
 
       if (strlen(header) < 5 || strncmp(header, "GET /", 5) < 0)
       {
