@@ -38,7 +38,7 @@
 #include <Arduino.h>
 
 unsigned long lastTemperatureHistoryRecord;
-uint8_t temperatureHistoryFillCnt = 0;
+uint16_t temperatureHistoryFillCnt = 0;
 #define TEMPERATURE_HISTORY_FREERAM_THRESHOLD 200
 uint16_t TEMPERATURE_HISTORY_SIZE = 0;
 
