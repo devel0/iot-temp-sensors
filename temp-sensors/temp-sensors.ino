@@ -7,6 +7,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <mywifikey.h>
+#include <PinChangeInterrupt.h>
 
 #include <DPrint.h>
 #include <Util.h>
@@ -40,6 +41,12 @@ void printFreeram()
 {
   DPrintF(F("Freeram : "));
   DPrintLongln(FreeMemorySum());
+}
+
+volatile byte interrupted = 0;
+void handleExtInterrupt()
+{
+  ++interrupted;
 }
 
 //
@@ -84,6 +91,13 @@ void setup()
       DPrintChar('.');
   }
   DPrintln();
+
+#ifdef USE_EXTERNAL_INTERRUPT
+  DPrintFln(F("setting interrupt handler"));
+  // external interrupt
+  pinMode(EXTERNAL_INTERRUPT_PIN, INPUT_PULLUP);
+  attachPCINT(digitalPinToPCINT(EXTERNAL_INTERRUPT_PIN), handleExtInterrupt, RISING);
+#endif
 
   server.begin();
 }
@@ -180,6 +194,8 @@ void ReadTemperatures()
   lastTemperatureRead = millis();
 }
 
+unsigned long lastInterrupted = millis();
+
 //
 // LOOP
 //
@@ -191,6 +207,39 @@ void loop()
   if (freeram_min == -1 || freeram_min > freeram)
     freeram_min = freeram;
 
+#ifdef USE_EXTERNAL_INTERRUPT
+  if (interrupted)
+  {
+    DPrintFln(F("interrupted"));
+    if (TimeDiff(lastInterrupted, millis()) > EXTERNAL_INTERRUPT_DEBOUNCE_MS)
+    {
+      DPrintFln(F("Handle external interrupt"));
+
+      EthernetClient client;
+      IPAddress addr(PUSHINGBOX_IP);
+      if (client.connect(addr, 80))
+      {
+        client.print("GET ");
+        client.print(PUSHINGBOX_QUERY);
+        client.println(" HTTP/1.1");
+
+        client.print("Host: ");
+        client.println(PUSHINGBOX_HOSTNAME);
+        client.println();
+
+        client.stop();
+
+        DPrintFln(F("===> SENT"));
+
+        interrupted = 0;
+        lastInterrupted = millis();
+      }
+      else
+        DPrintFln(F("fail to connect pushingbox"));
+    }
+  }
+#endif
+
   if (EthernetClient client = server.available())
   {
 
@@ -198,7 +247,7 @@ void loop()
     {
       header[0] = 0;
       {
-        int i = 0;        
+        int i = 0;
         auto lim = min(MAX_HEADER_SIZE, size);
         while (i < lim)
         {
@@ -335,7 +384,7 @@ void loop()
         client.print(F(", \"history_size\":"));
         client.print(temperatureHistorySize);
 
-        client.print(F(", \"history_interval_sec\":"));        
+        client.print(F(", \"history_interval_sec\":"));
         client.print(temperatureHistoryIntervalSec);
 
         client.print(F(", \"history_backlog_hours\":"));

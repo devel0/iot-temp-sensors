@@ -22,6 +22,7 @@ atmega328 + onewire ds18b20 + ethernet enc28j60/w5500
 ## prerequisites
 
 - [iot-atmega328p-eth](https://github.com/devel0/iot-atmega328p-eth)
+- [PinChangeInterrupt](https://github.com/NicoHood/PinChangeInterrupt)
 
 ## config
 
@@ -60,8 +61,8 @@ atmega328 + onewire ds18b20 + ethernet enc28j60/w5500
 - `UIP_CONF_UDP=0` in `UIPEthernet/utility/uipethernet-conf.h`
 
 ```
-Sketch uses 28070 bytes (85%) of program storage space. Maximum is 32768 bytes.
-Global variables use 1216 bytes (59%) of dynamic memory, leaving 832 bytes for local variables. Maximum is 2048 bytes.
+Sketch uses 30606 bytes (93%) of program storage space. Maximum is 32768 bytes.
+Global variables use 1308 bytes (63%) of dynamic memory, leaving 740 bytes for local variables. Maximum is 2048 bytes.
 ```
 
 **W5500**
@@ -69,6 +70,20 @@ Global variables use 1216 bytes (59%) of dynamic memory, leaving 832 bytes for l
 ```
 Sketch uses 27076 bytes (82%) of program storage space. Maximum is 32768 bytes.
 Global variables use 702 bytes (34%) of dynamic memory, leaving 1346 bytes for local variables. Maximum is 2048 bytes.
+```
+
+## external interrupt push notification
+
+if want to use the device to [push a notification](https://github.com/devel0/knowledge/blob/a67714b98ecccc3c15875fafbbb5c44d93fe7a45/doc/android-push-notify.md)
+- in `Config.h`
+    - ensure `USE_EXTERNAL_INTERRUPT` defined
+    - change if needed used pin `EXTERNAL_INTERRUPT_PIN` ( see [atmega pinmapping](https://github.com/devel0/knowledge/blob/697060acd63ce9172f0e49bc8a9bfea296b50a14/doc/arduino-on-atmega8.md#pin-mapping) )
+    - define header file
+
+```c
+#define PUSHINGBOX_IP 213,186,33,19
+#define PUSHINGBOX_HOSTNAME "api.pushingbox.com"
+#define PUSHINGBOX_QUERY "/pushingbox?devid=xxx"
 ```
 
 ## security considerations

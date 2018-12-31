@@ -34,9 +34,26 @@
 #define TEMPERATURE_HISTORY_FREERAM_THRESHOLD 400
 #define UPDATE_TEMPERATURE_MS 5000
 
+// comment following to disable external interrupt
+#define USE_EXTERNAL_INTERRUPT
+
+#ifdef USE_EXTERNAL_INTERRUPT
+#define EXTERNAL_INTERRUPT_PIN 8
+#define EXTERNAL_INTERRUPT_DEBOUNCE_MS 5000
+#define EXTERNAL_INTERRUPT_MODE RISING
+// follow header file should contains
+//
+// #define PUSHINGBOX_IP 213,186,33,19
+// #define PUSHINGBOX_HOSTNAME "api.pushingbox.com"
+// #define PUSHINGBOX_QUERY "/pushingbox?devid=xxx"
+//
+// see https://github.com/devel0/knowledge/blob/a67714b98ecccc3c15875fafbbb5c44d93fe7a45/doc/android-push-notify.md
+#include "/home/devel0/security/pushingbox_videophone_bell.h"
+#define EXTERNAL_INTERRUPT_CALLBACK PUSHINGBOX_URL
+#endif
+
 //
 //==============================================================================
-
 
 #ifdef USE_ENC28J60
 #include <UIPEthernet.h>

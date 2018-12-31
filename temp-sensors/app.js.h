@@ -61,6 +61,8 @@ $('.freeram')[0].innerText = res.freeram; \
 $('.freeramMin')[0].innerText = res.freeram; \
 $('.temperatureHistoryIntervalMin')[0].innerText = (res.history_interval_sec / 60.0).toFixed(1); \
 $('.temperatureBacklogHours')[0].innerText = res.history_backlog_hours; \
+ \
+history_interval_sec = res.history_interval_sec; \
 } \
 async function reloadTemp(addr) { \
 showSpin(); \
@@ -74,7 +76,7 @@ type: 'GET' \
 }); \
 finished = true; \
 } catch (e) { \
- \
+await sleep(1000); \
 } \
 } \
 hideSpin(); \
@@ -129,7 +131,7 @@ type: 'GET' \
 }); \
 finished = true; \
 } catch (e) { \
- \
+await sleep(1000); \
 } \
 } \
  \
@@ -198,17 +200,23 @@ async function myfn() { \
 setInterval(autorefresh, 1000); \
  \
 showSpin(); \
-const res = await $.ajax({ \
-url: baseurl + '/tempdevices', \
+let finished = false; \
+ \
+let res = null; \
+while (!finished) { \
+try { \
+res = await $.ajax({ \
+url: baseurl + \"/tempdevices\", \
 type: 'GET' \
 }); \
-const resnfo = await $.ajax({ \
-url: baseurl + '/info', \
-type: 'GET' \
-}); \
-history_interval_sec = resnfo.history_interval_sec; \
-console.log('history_interval_sec = ' + history_interval_sec); \
+finished = true; \
+} catch (e) { \
+await sleep(1000); \
+} \
+} \
 hideSpin(); \
+ \
+await reloadInfo(); \
  \
 var h = \"\"; \
  \
