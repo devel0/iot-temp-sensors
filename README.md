@@ -32,7 +32,7 @@ atmega328 + onewire ds18b20 + ethernet enc28j60/w5500
 ## debugging
 
 - start `code .` from sketch folder
-- program the chip `ctrl+shift+p` through usbasp programmer
+- program the chip `ctrl+shift+p` through usbasp programmer ( before apply a `ctrl+alt+r` to invoke prebuild `gen-h` )
 - drag `index.htm` and `app.js` into code
 - config `app.js`
   - tune [baseurl](https://github.com/devel0/iot-temp-sensors/blob/432999ee57a9892da64955140d62139edcb04fc9/temp-sensors/app.js#L20)

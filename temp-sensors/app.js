@@ -7,13 +7,29 @@
 // add a description to your sensors here
 //
 var sensorDesc = [{
-    id: "28af8123070000e2",
-    description: "test"
-}];
+        id: "28b5742407000084",
+        description: "external"
+    },
+    {
+        id: "2833bf3a050000ec",
+        description: "bedroom"
+    },
+    {
+        id: "28cc5d3a050000e3",
+        description: "bathroom"
+    },
+    {
+        id: "288aef140500008d",
+        description: "lab"
+    }
+];
 
 // automatic replaced to debug = false during compilation
 // this is used to debug page index.htm locally
 var debug = true;
+
+var infoUpdateIntervalMs = 5000;
+var tempUpdateIntervalMs = 10000;
 
 //==============================================================================
 
@@ -21,14 +37,47 @@ requirejs.config({
     "moment": "://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"
 });
 
+function showSpin() {
+    $('.j-spin').removeClass("collapse");
+}
+
+function hideSpin() {
+    $('.j-spin').addClass("collapse");
+}
+
 // updated from /info api
 var history_interval_sec = 10;
 
 var baseurl = '';
-if (debug) baseurl = 'http://10.10.4.111';
+if (debug) baseurl = 'http://10.10.2.5';
 
+async function reloadInfo() {
+    //console.log("--> reloadInfo");
+    showSpin();
+    let finished = false;
+    let res = null;
+    while (!finished) {
+        try {
+            res = await $.ajax({
+                url: baseurl + '/info',
+                type: 'GET'
+            });
+            finished = true;
+        } catch (e) {
+            await sleep(1000);
+        }
+    }
+    hideSpin();
+
+    $('.freeram')[0].innerText = res.freeram;
+    $('.freeramMin')[0].innerText = res.freeram;
+    $('.temperatureHistoryIntervalMin')[0].innerText = (res.history_interval_sec / 60.0).toFixed(1);
+    $('.temperatureBacklogHours')[0].innerText = res.history_backlog_hours;
+
+    history_interval_sec = res.history_interval_sec;
+}
 async function reloadTemp(addr) {
-    $('.j-spin').removeClass('collapse');
+    showSpin();
     let finished = false;
     let res = null;
     while (!finished) {
@@ -39,31 +88,51 @@ async function reloadTemp(addr) {
             });
             finished = true;
         } catch (e) {
-
+            await sleep(1000);
         }
     }
-    $('.j-spin').addClass('collapse');
+    hideSpin();
     $('#t' + addr)[0].innerText = res;
 }
-var reload_enabled = false;
-setInterval(autoreload, 10000);
 
-function autoreload() {
-    if (!reload_enabled) return;
-    reloadall();
+var infoLastLoad;
+var tempLastLoad;
+var chartLastLoad;
+var autorefreshInProgress = false;
+
+async function autorefresh() {
+    if (autorefreshInProgress) return;
+
+    autorefreshInProgress = true;
+    var dtnow = new Date();
+    if (infoLastLoad === undefined || (dtnow - infoLastLoad) > infoUpdateIntervalMs) {
+        await reloadInfo();
+        infoLastLoad = new Date();
+    }
+    if (tempLastLoad === undefined || (dtnow - tempLastLoad) > tempUpdateIntervalMs) {
+        await reloadAllTemp();
+        tempLastLoad = new Date();
+    }
+    if (chartLastLoad === undefined || (dtnow - chartLastLoad) > history_interval_sec * 1000) {
+        await reloadCharts();
+        chartLastLoad = new Date();
+    }
+    autorefreshInProgress = false;
 }
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function reloadall() {
+async function reloadAllTemp() {
+    //console.log("--> reloadAllTemp");
     $('.tempdev').each(async function (idx) {
         let v = this.innerText;
-        console.log('addr=[' + v + ']');
         await reloadTemp(v);
     });
+}
 
+async function reloadCharts() {
     let finished = false;
 
     let res = null;
@@ -75,7 +144,7 @@ async function reloadall() {
             });
             finished = true;
         } catch (e) {
-
+            await sleep(1000);
         }
     }
 
@@ -124,6 +193,8 @@ async function reloadall() {
             datasets: dss
         },
         options: {
+            //maintainAspectRatio: false,
+            animation: false,
             scales: {
                 xAxes: [{
                     type: 'time',
@@ -140,21 +211,26 @@ async function reloadall() {
 }
 
 async function myfn() {
-    // retrieve temperature devices and populate table
+    setInterval(autorefresh, 1000);
 
-    $('.j-spin').removeClass('collapse');
-    const res = await $.ajax({
-        url: baseurl + '/tempdevices',
-        type: 'GET'
-    });
-    const resnfo = await $.ajax({
-        url: baseurl + '/info',
-        type: 'GET'
-    });
-    history_interval_sec = resnfo.history_interval_sec;
-    console.log('history_interval_sec = ' + history_interval_sec);
+    showSpin();    
+    let finished = false;
 
-    $('.j-spin').addClass('collapse');
+    let res = null;
+    while (!finished) {
+        try {
+            res = await $.ajax({
+                url: baseurl + "/tempdevices",
+                type: 'GET'
+            });
+            finished = true;
+        } catch (e) {
+            await sleep(1000);
+        }
+    }
+    hideSpin();
+
+    await reloadInfo();        
 
     var h = "";
 
@@ -177,22 +253,13 @@ async function myfn() {
         // value
         h += "<td><span id='t" + tempId + "'>";
         h += "</span></td>";
-
-        // action
-        h += "<td><button class='btn btn-primary' onclick='reloadTemp(\"" + res.tempdevices[i] + "\")'>reload</button></td>";
-
+        
         h += "</tr>";
     }
 
     $('#tbody-temp')[0].innerHTML = h;
-
-    const res2 = await $.ajax({
-        url: baseurl + '/info',
-        type: 'GET'
-    });
-    $('#info')[0].innerHTML = JSON.stringify(res2, null, 2);
-
-    reloadall();
 }
 
-myfn();
+$(document).ready(function () {
+    myfn();
+});
