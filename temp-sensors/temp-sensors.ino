@@ -95,7 +95,7 @@ void setup()
 #ifdef USE_EXTERNAL_INTERRUPT
   DPrintFln(F("setting interrupt handler"));
   // external interrupt
-  pinMode(EXTERNAL_INTERRUPT_PIN, INPUT_PULLUP);
+  pinMode(EXTERNAL_INTERRUPT_PIN, EXTERNAL_INTERRUPT_INPUT_MODE);
   attachPCINT(digitalPinToPCINT(EXTERNAL_INTERRUPT_PIN), handleExtInterrupt, RISING);
 #endif
 
