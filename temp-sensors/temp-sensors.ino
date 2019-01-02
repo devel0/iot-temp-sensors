@@ -237,6 +237,8 @@ void loop()
       else
         DPrintFln(F("fail to connect pushingbox"));
     }
+    else
+      interrupted = 0; // reset too fast interrupts
   }
 #endif
 
